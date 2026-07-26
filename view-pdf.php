@@ -39,6 +39,18 @@ ob_start();
 $code = required_param("code", PARAM_TEXT);
 $action = required_param("action", PARAM_TEXT);
 
+$token = optional_param("token", false, PARAM_TEXT);
+if ($token) {
+    $extservice = $DB->get_record("external_services", ["shortname" => MOODLE_OFFICIAL_MOBILE_SERVICE]);
+    $exttoken = $DB->get_record("external_tokens", ["token" => $token, "externalserviceid" => $extservice->id], "userid");
+    if ($exttoken) {
+        $tokenuser = $DB->get_record("user", ["id" => $exttoken->userid]);
+        if ($tokenuser) {
+            \core\session\manager::login_user($tokenuser);
+        }
+    }
+}
+
 if ($action == "createadmin") {
     $userid = required_param("userid", PARAM_INT);
     $user = $DB->get_record("user", ["id" => $userid], '*', MUST_EXIST);
@@ -120,6 +132,20 @@ $contentpdf = $pagepdf->create_pdf(
     $certificatebeautiful, $certificatebeautifulissue, $certificatebeautifulmodel, $user, $course);
 
 $fs->create_file_from_string($filerecord, $contentpdf);
+
+try {
+    $signedpdf = \mod_certificatebeautiful\pdf\signer\signer::sign_pdf($contentpdf);
+    $tmpfile = $fs->get_file(
+        $filerecord->contextid, $filerecord->component,
+        $filerecord->filearea, $filerecord->itemid,
+        $filerecord->filepath, $filerecord->filename);
+    if ($tmpfile) { $tmpfile->delete(); }
+    $fs->create_file_from_string($filerecord, $signedpdf);
+    $contentpdf = $signedpdf;
+} catch (\Exception $e) {
+    debugging('certificatebeautiful signing: ' . $e->getMessage(), DEBUG_DEVELOPER);
+}
+
 $certificatebeautifulissueupdate = (object) [
     "id" => $certificatebeautiful->id,
     "version" => $certificatebeautiful->timemodified,

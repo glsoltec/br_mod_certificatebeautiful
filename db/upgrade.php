@@ -135,5 +135,19 @@ function xmldb_certificatebeautiful_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026040200, "certificatebeautiful");
     }
 
+    if ($oldversion < 2026072501) {
+        $table = new xmldb_table("certificatebeautiful_usersignature");
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table("certificatebeautiful_sign_log");
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2026072501, "certificatebeautiful");
+    }
+
     return true;
 }

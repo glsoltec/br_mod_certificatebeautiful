@@ -39,13 +39,19 @@ class mobile {
     public static function mobile_course_view($args) {
         global $OUTPUT;
 
+        $cmid = $args["cmid"];
+        $token = self::get_token();
+
         $url = new moodle_url("/mod/certificatebeautiful/view.php", [
-            "id" => $args["cmid"],
-            "token" => self::get_token(),
+            "id" => $cmid,
+            "token" => $token,
         ]);
+
         $data = [
-            "cmid" => $args["cmid"],
-            "iframe-url" => $url->out(false),
+            "cmid" => $cmid,
+            "token" => $token,
+            "iframeurl" => $url->out(false),
+            "wwwroot" => $url->get_scheme() . '://' . $url->get_host(),
         ];
 
         return [

@@ -268,7 +268,6 @@ function certificatebeautiful_myprofile_navigation(core_user\output\myprofile\tr
         }
     }
 
-    // Add nodes, if any.
     if (!empty($addnodes)) {
         $myname = get_string("my_certificates", "certificatebeautiful");
         $mobilecat = new core_user\output\myprofile\category("certificates", $myname, "contact");
@@ -278,6 +277,222 @@ function certificatebeautiful_myprofile_navigation(core_user\output\myprofile\tr
             $tree->add_node($node);
         }
     }
+}
+
+/**
+ * Adiciona link "Minha Assinatura" ao perfil do usuario.
+ *
+ * @param navigation_node $parentnode
+ * @param stdClass $user
+ * @param context_user $context
+ * @param stdClass $course
+ * @param stdClass $coursecontext
+ */
+function certificatebeautiful_extend_navigation_user(
+    \navigation_node $parentnode,
+    \stdClass $user,
+    \context_user $context,
+    $course,
+    $coursecontext
+): void {
+    global $USER, $CFG;
+
+    if ($USER->id != $user->id && !has_capability('moodle/user:editprofile', $context)) {
+        return;
+    }
+
+    $parentnode->add(
+        get_string('mysignature', 'certificatebeautiful'),
+        new \moodle_url('/mod/certificatebeautiful/signature.php', ['userid' => $user->id]),
+        \navigation_node::TYPE_SETTING,
+        null,
+        'certificatebeautiful_signature',
+        new \pix_icon('i/edit', '')
+    );
+}
+
+/**
+ * Adiciona link "Minha Assinatura" ao menu de preferencias do usuario.
+ *
+ * @param navigation_node $parentnode
+ * @param stdClass $user
+ * @param context_user $context
+ * @param stdClass $course
+ * @param stdClass $coursecontext
+ */
+function certificatebeautiful_extend_navigation_user_settings(
+    \navigation_node $parentnode,
+    \stdClass $user,
+    \context_user $context,
+    $course,
+    $coursecontext
+): void {
+    global $USER, $CFG;
+
+    if ($USER->id != $user->id && !has_capability('moodle/user:editprofile', $context)) {
+        return;
+    }
+
+    $parentnode->add(
+        get_string('mysignature', 'certificatebeautiful'),
+        new \moodle_url('/mod/certificatebeautiful/signature.php', ['userid' => $user->id]),
+        \navigation_node::TYPE_SETTING,
+        null,
+        'certificatebeautiful_signature',
+        new \pix_icon('i/edit', '')
+    );
+}
+
+/**
+ * Fontes de assinatura disponiveis.
+ *
+ * @return array
+ */
+function certificatebeautiful_signature_fonts(): array {
+    return [
+        'autography' => ['label' => 'Autography', 'family' => "'Autography', cursive", 'file' => 'Autography', 'size' => 56, 'color' => '#2c4a1e'],
+        'caveat'     => ['label' => 'Caveat',     'family' => "'Caveat', cursive",     'file' => 'Caveat',     'size' => 54, 'color' => '#1a2a4a'],
+        'sacramento' => ['label' => 'Sacramento', 'family' => "'Sacramento', cursive", 'file' => 'Sacramento', 'size' => 56, 'color' => '#3a1a1a'],
+        'aerotis'    => ['label' => 'Aerotis',    'family' => "'Aerotis', cursive",    'file' => 'Aerotis',    'size' => 50, 'color' => '#1a3a5c'],
+    ];
+}
+
+/**
+ * Slug da fonte padrao.
+ *
+ * @return string
+ */
+function certificatebeautiful_signature_default_font(): string {
+    return 'autography';
+}
+
+/**
+ * Retorna a URL publica da assinatura do usuario, ou null.
+ *
+ * @param int $userid
+ * @return moodle_url|null
+ */
+function certificatebeautiful_get_signature_url(int $userid): ?\moodle_url {
+    $context = \core\context\user::instance($userid, IGNORE_MISSING);
+    if (!$context) {
+        return null;
+    }
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($context->id, 'mod_certificatebeautiful', 'signature', 0, 'timemodified DESC', false);
+    if (empty($files)) {
+        return null;
+    }
+    $file = reset($files);
+    return \moodle_url::make_pluginfile_url(
+        $file->get_contextid(),
+        $file->get_component(),
+        $file->get_filearea(),
+        $file->get_itemid(),
+        $file->get_filepath(),
+        $file->get_filename()
+    );
+}
+
+/**
+ * Retorna metadados da assinatura.
+ *
+ * @param int $userid
+ * @return array
+ */
+function certificatebeautiful_get_signature_meta(int $userid): array {
+    global $DB;
+    $record = $DB->get_record('certificatebeautiful_usersignature', ['userid' => $userid]);
+    if (!$record) {
+        return ['font' => '', 'text' => '', 'timemodified' => 0];
+    }
+    return [
+        'font'         => $record->font_style,
+        'text'         => $record->signature_text,
+        'timemodified' => (int) $record->timemodified,
+    ];
+}
+
+/**
+ * Retorna a assinatura como Data URI base64 para embutir no PDF.
+ *
+ * @param int $userid
+ * @return string
+ */
+function certificatebeautiful_get_signature_datauri(int $userid): string {
+    $context = \core\context\user::instance($userid, IGNORE_MISSING);
+    if (!$context) {
+        return '';
+    }
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($context->id, 'mod_certificatebeautiful', 'signature', 0, 'timemodified DESC', false);
+    if (empty($files)) {
+        return '';
+    }
+    $file = reset($files);
+    return 'data:' . $file->get_mimetype() . ';base64,' . base64_encode($file->get_content());
+}
+
+/**
+ * Salva ou atualiza metadados da assinatura.
+ *
+ * @param int $userid
+ * @param string $font
+ * @param string $text
+ */
+function certificatebeautiful_signature_save_meta(int $userid, string $font, string $text): void {
+    global $DB;
+    $existing = $DB->get_record('certificatebeautiful_usersignature', ['userid' => $userid]);
+    $now = time();
+    if ($existing) {
+        $existing->font_style     = $font;
+        $existing->signature_text = $text;
+        $existing->timemodified   = $now;
+        $DB->update_record('certificatebeautiful_usersignature', $existing);
+    } else {
+        $DB->insert_record('certificatebeautiful_usersignature', (object)[
+            'userid'         => $userid,
+            'font_style'     => $font,
+            'signature_text' => $text,
+            'timecreated'    => $now,
+            'timemodified'   => $now,
+        ]);
+    }
+}
+
+/**
+ * Callback para servir arquivos de assinatura via pluginfile.php.
+ *
+ * @param stdClass $course
+ * @param stdClass $cm
+ * @param context $context
+ * @param string $filearea
+ * @param array $args
+ * @param bool $forcedownload
+ * @param array $options
+ */
+function certificatebeautiful_pluginfile(
+    $course, $cm, $context, string $filearea, array $args, bool $forcedownload, array $options = []
+): void {
+    if ($context->contextlevel != CONTEXT_USER) {
+        send_file_not_found();
+    }
+    if ($filearea !== 'signature') {
+        return;
+    }
+
+    require_login(null, false);
+
+    $fs = get_file_storage();
+    $itemid = (int) array_shift($args);
+    $filename = array_pop($args);
+    $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
+    $file = $fs->get_file($context->id, 'mod_certificatebeautiful', 'signature', $itemid, $filepath, $filename);
+
+    if (!$file) {
+        send_file_not_found();
+    }
+
+    send_stored_file($file, 86400, 0, $forcedownload, $options);
 }
 
 /**

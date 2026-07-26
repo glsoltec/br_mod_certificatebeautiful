@@ -33,13 +33,14 @@ require_once("{$CFG->dirroot}/mod/certificatebeautiful/classes/issue.php");
 global $PAGE, $USER, $CFG;
 
 $id = required_param("id", PARAM_INT);
+$token = optional_param("token", false, PARAM_TEXT);
 
 $cm = get_coursemodule_from_id("certificatebeautiful", $id, 0, false, MUST_EXIST);
 $course = $DB->get_record("course", ["id" => $cm->course], "*", MUST_EXIST);
 
 $context = context_module::instance($cm->id);
 
-if ($token = optional_param("token", false, PARAM_TEXT)) {
+if ($token) {
     $externalservice = $DB->get_record("external_services", ["shortname" => MOODLE_OFFICIAL_MOBILE_SERVICE]);
     $externaltoken = $DB->get_record("external_tokens", ["token" => $token, "externalserviceid" => $externalservice->id], "userid");
     $user = $DB->get_record("user", ["id" => $externaltoken->userid]);
@@ -144,7 +145,14 @@ if (has_capability("mod/certificatebeautiful:addinstance", $context)) {
             "issueid" => $certificatebeautifulissue->id,
             "pdf-viewer-url" => "{$viewerurl}?file=" . urlencode("{$urlbase}&action=view"),
             "pdf-url_base" => $urlbase,
+            "pdf-direct-url" => "{$urlbase}&action=view",
         ];
+
+        if ($token) {
+            $mobilepdf = "{$urlbase}&action=view&token=" . urlencode($token);
+            $data["pdf-direct-url"] = $mobilepdf;
+            $data["pdf-viewer-url"] = "{$viewerurl}?file=" . urlencode($mobilepdf);
+        }
 
         echo $OUTPUT->render_from_template("mod_certificatebeautiful/view", $data);
     }

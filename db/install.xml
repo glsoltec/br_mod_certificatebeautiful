@@ -59,5 +59,30 @@
         <INDEX NAME="code" UNIQUE="true" FIELDS="code"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="certificatebeautiful_usersignature" COMMENT="User cursive signature metadata">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="font_style" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="autography"/>
+        <FIELD NAME="signature_text" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT=""/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="userid" TYPE="unique" FIELDS="userid"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="certificatebeautiful_sign_log" COMMENT="Log of digitally signed certificate issues">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="issueid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="issueid" TYPE="unique" FIELDS="issueid"/>
+      </KEYS>
+    </TABLE>
   </TABLES>
 </XMLDB>

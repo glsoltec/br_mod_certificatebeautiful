@@ -29,7 +29,7 @@ $addons = [
         "handlers" => [
             "coursecertificatebeautiful" => [
                 "displaydata" => [
-                    "icon" => "{$CFG->wwwroot}/mod/certificatebeautiful/pix/icon.svg",
+                    "icon" => "{$CFG->wwwroot}/mod/certificatebeautiful/pix/monologo.svg",
                     "class" => "",
                 ],
                 "delegate" => "CoreCourseModuleDelegate",
@@ -38,6 +38,12 @@ $addons = [
         ],
         "lang" => [
             ["pluginname", "mod_certificatebeautiful"],
+            ["my_certificates", "mod_certificatebeautiful"],
+            ["certificate_not_issued", "mod_certificatebeautiful"],
+            ["view_certificate", "mod_certificatebeautiful"],
+            ["mysignature", "mod_certificatebeautiful"],
+            ["savesignature", "mod_certificatebeautiful"],
+            ["deletesignature", "mod_certificatebeautiful"],
         ],
     ],
 ];

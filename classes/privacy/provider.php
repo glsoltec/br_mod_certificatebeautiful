@@ -56,6 +56,20 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
             "userid" => 'privacy:metadata:certificatebeautiful_issue:userid',
         ], 'privacy:metadata:certificatebeautiful_issue');
 
+        $collection->add_database_table("certificatebeautiful_usersignature", [
+            "userid" => 'privacy:metadata:usersignature:userid',
+            "font_style" => 'privacy:metadata:usersignature:font_style',
+            "signature_text" => 'privacy:metadata:usersignature:signature_text',
+            "timecreated" => 'privacy:metadata:usersignature:timecreated',
+            "timemodified" => 'privacy:metadata:usersignature:timemodified',
+        ], 'privacy:metadata:usersignature');
+
+        $collection->add_subsystem_link(
+            'core_files',
+            [],
+            'privacy:metadata:filearea:signature'
+        );
+
         return $collection;
     }
 
@@ -85,6 +99,18 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
         ];
         $contextlist = new contextlist();
         $contextlist->add_from_sql($sql, $params);
+
+        $sql = "SELECT ctx.id
+                  FROM {certificatebeautiful_usersignature} sig
+                  JOIN {context} ctx
+                    ON ctx.instanceid = sig.userid
+                   AND ctx.contextlevel = :ctxlevel
+                 WHERE sig.userid = :userid";
+        $contextlist->add_from_sql($sql, [
+            'ctxlevel' => CONTEXT_USER,
+            'userid' => $userid,
+        ]);
+
         return $contextlist;
     }
 
@@ -104,39 +130,61 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
             return $carry;
         }, []);
 
-        if (empty($cmids)) {
-            return;
-        }
-
         $user = $contextlist->get_user();
 
-        $instanceidstocmids = self::get_instance_ids_to_cmids_from_cmids($cmids);
-        $instanceids = array_keys($instanceidstocmids);
+        if (!empty($cmids)) {
+            $instanceidstocmids = self::get_instance_ids_to_cmids_from_cmids($cmids);
+            $instanceids = array_keys($instanceidstocmids);
 
-        list($insql, $inparams) = $DB->get_in_or_equal($instanceids, SQL_PARAMS_NAMED);
-        $params = array_merge($inparams, ["userid" => $user->id]);
-        $recordset = $DB->get_recordset_select(
-            "certificatebeautiful_issue",
-            "cmid $insql AND userid = :userid",
-            $params,
-            'timecreated, id'
-        );
-        self::recordset_loop_and_export($recordset, "cmid", [],
-            function ($carry, $record) use ($user, $instanceidstocmids) {
-                $carry[] = [
-                    "timecreated" => userdate($record->timecreated),
-                    "code" => $record->code,
-                ];
-                return $carry;
-            },
-            function ($instanceid, $data) use ($user, $instanceidstocmids) {
-                $context = context_module::instance($instanceidstocmids[$instanceid]);
-                $contextdata = helper::get_context_data($context, $user);
-                $finaldata = (object)array_merge((array)$contextdata, ["logs" => $data]);
-                helper::export_context_files($context, $user);
-                writer::with_context($context)->export_data([], $finaldata);
+            list($insql, $inparams) = $DB->get_in_or_equal($instanceids, SQL_PARAMS_NAMED);
+            $params = array_merge($inparams, ["userid" => $user->id]);
+            $recordset = $DB->get_recordset_select(
+                "certificatebeautiful_issue",
+                "cmid $insql AND userid = :userid",
+                $params,
+                'timecreated, id'
+            );
+            self::recordset_loop_and_export($recordset, "cmid", [],
+                function ($carry, $record) use ($user, $instanceidstocmids) {
+                    $carry[] = [
+                        "timecreated" => userdate($record->timecreated),
+                        "code" => $record->code,
+                    ];
+                    return $carry;
+                },
+                function ($instanceid, $data) use ($user, $instanceidstocmids) {
+                    $context = context_module::instance($instanceidstocmids[$instanceid]);
+                    $contextdata = helper::get_context_data($context, $user);
+                    $finaldata = (object)array_merge((array)$contextdata, ["logs" => $data]);
+                    helper::export_context_files($context, $user);
+                    writer::with_context($context)->export_data([], $finaldata);
+                }
+            );
+        }
+
+        foreach ($contextlist->get_contexts() as $context) {
+            if (!$context instanceof \context_user || $context->instanceid != $user->id) {
+                continue;
             }
-        );
+
+            $record = $DB->get_record('certificatebeautiful_usersignature', ['userid' => $user->id]);
+            if (!$record) {
+                continue;
+            }
+
+            $data = (object) [
+                'font_style'     => $record->font_style,
+                'signature_text' => $record->signature_text,
+                'timecreated'    => transform::datetime($record->timecreated),
+                'timemodified'   => transform::datetime($record->timemodified),
+            ];
+
+            $subcontext = [get_string('mysignature', 'certificatebeautiful')];
+            writer::with_context($context)->export_data($subcontext, $data);
+            writer::with_context($context)->export_area_files(
+                $subcontext, 'mod_certificatebeautiful', 'signature', 0
+            );
+        }
     }
 
     /**
@@ -171,11 +219,15 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
         }
         $userid = $contextlist->get_user()->id;
         foreach ($contextlist->get_contexts() as $context) {
-            if (!$context instanceof context_module) {
-                return;
+            if ($context instanceof context_module) {
+                $instanceid = $DB->get_field("course_modules", "instance", ["id" => $context->instanceid], MUST_EXIST);
+                $DB->delete_records("certificatebeautiful_issue", ["cmid" => $instanceid, "userid" => $userid]);
             }
-            $instanceid = $DB->get_field("course_modules", "instance", ["id" => $context->instanceid], MUST_EXIST);
-            $DB->delete_records("certificatebeautiful_issue", ["cmid" => $instanceid, "userid" => $userid]);
+            if ($context instanceof \context_user && $context->instanceid == $userid) {
+                $DB->delete_records("certificatebeautiful_usersignature", ["userid" => $userid]);
+                $fs = get_file_storage();
+                $fs->delete_area_files($context->id, 'mod_certificatebeautiful', 'signature');
+            }
         }
     }
 
@@ -242,20 +294,22 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
     public static function get_users_in_context(userlist $userlist) {
         $context = $userlist->get_context();
 
-        if (!$context instanceof context_module) {
-            return;
+        if ($context instanceof context_module) {
+            $params = [
+                "instanceid" => $context->instanceid,
+            ];
+            $sql = "SELECT i.userid
+                      FROM {course_modules}             cm
+                      JOIN {certificatebeautiful_issue} i  ON i.cmid = cm.id
+                     WHERE cm.id = :instanceid";
+            $userlist->add_from_sql("userid", $sql, $params);
         }
 
-        $params = [
-            "instanceid" => $context->instanceid,
-        ];
-
-        $sql = "SELECT i.userid
-                  FROM {course_modules}             cm
-                  JOIN {certificatebeautiful_issue} i  ON i.cmid = cm.id
-                 WHERE cm.id = :instanceid";
-
-        $userlist->add_from_sql("userid", $sql, $params);
+        if ($context instanceof \context_user) {
+            if (self::user_has_signature($context->instanceid)) {
+                $userlist->add_user($context->instanceid);
+            }
+        }
     }
 
     /**
@@ -268,12 +322,31 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
         global $DB;
 
         $context = $userlist->get_context();
-        $cm = $DB->get_record("course_modules", ["id" => $context->instanceid]);
 
-        list($userinsql, $userinparams) = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
-        $params = array_merge(["cmid" => $cm->instance], $userinparams);
-        $sql = "cmid = :cmid AND userid {$userinsql}";
+        if ($context instanceof context_module) {
+            $cm = $DB->get_record("course_modules", ["id" => $context->instanceid]);
 
-        $DB->delete_records_select("certificatebeautiful_issue", $sql, $params);
+            list($userinsql, $userinparams) = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
+            $params = array_merge(["cmid" => $cm->instance], $userinparams);
+            $sql = "cmid = :cmid AND userid {$userinsql}";
+
+            $DB->delete_records_select("certificatebeautiful_issue", $sql, $params);
+        }
+
+        if ($context instanceof \context_user) {
+            foreach ($userlist->get_userids() as $userid) {
+                if ($userid != $context->instanceid) {
+                    continue;
+                }
+                $DB->delete_records('certificatebeautiful_usersignature', ['userid' => $userid]);
+                $fs = get_file_storage();
+                $fs->delete_area_files($context->id, 'mod_certificatebeautiful', 'signature');
+            }
+        }
+    }
+
+    private static function user_has_signature(int $userid): bool {
+        global $DB;
+        return $DB->record_exists('certificatebeautiful_usersignature', ['userid' => $userid]);
     }
 }
