@@ -29,7 +29,7 @@ use mod_certificatebeautiful\vo\certificatebeautiful_issue;
 use mod_certificatebeautiful\vo\certificatebeautiful_model;
 
 // phpcs:disable moodle.Files.MoodleInternal.MoodleInternalGlobalState
-global $PAGE, $CFG, $DB;
+global $PAGE, $CFG, $DB, $USER;
 
 require_once('../../config.php');
 require_once("{$CFG->libdir}/tablelib.php");
@@ -42,7 +42,9 @@ $action = required_param("action", PARAM_TEXT);
 $token = optional_param("token", false, PARAM_TEXT);
 if ($token) {
     $extservice = $DB->get_record("external_services", ["shortname" => MOODLE_OFFICIAL_MOBILE_SERVICE]);
-    $exttoken = $DB->get_record("external_tokens", ["token" => $token, "externalserviceid" => $extservice->id], "userid");
+    $exttoken = $extservice
+        ? $DB->get_record("external_tokens", ["token" => $token, "externalserviceid" => $extservice->id], "userid")
+        : false;
     if ($exttoken) {
         $tokenuser = $DB->get_record("user", ["id" => $exttoken->userid]);
         if ($tokenuser) {
@@ -58,28 +60,29 @@ if ($action == "createadmin") {
     $cmid = required_param("cmid", PARAM_INT);
     $cm = get_coursemodule_from_id("certificatebeautiful", $cmid, 0, false, MUST_EXIST);
 
-    $certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], '*', MUST_EXIST);
+    $context = context_module::instance($cm->id);
+    require_login();
+    require_capability('mod/certificatebeautiful:addinstance', $context);
 
-    $issue = issue::get($user, $certificatebeautiful, $cm);
-    $paramsview = ["code" => $issue->code, "action" => "view"];
-    redirect(new moodle_url('/mod/certificatebeautiful/view-pdf.php?', $paramsview));
+    $certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], '*', MUST_EXIST);
+    $certificatebeautifulissue = issue::get($user, $certificatebeautiful, $cm);
+} else {
+    /** @var certificatebeautiful_issue $certificatebeautifulissue */
+    $certificatebeautifulissue = $DB->get_record("certificatebeautiful_issue", ["code" => $code], '*', MUST_EXIST);
+
+    $cm = get_coursemodule_from_id("certificatebeautiful", $certificatebeautifulissue->cmid, 0, false, MUST_EXIST);
+    $certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], '*', MUST_EXIST);
+    $user = $DB->get_record("user", ["id" => $certificatebeautifulissue->userid], '*', MUST_EXIST);
+    $context = context_module::instance($cm->id);
 }
 
-/** @var certificatebeautiful_issue $certificatebeautifulissue */
-$certificatebeautifulissue = $DB->get_record("certificatebeautiful_issue", ["code" => $code], '*', MUST_EXIST);
-
-$cm = get_coursemodule_from_id("certificatebeautiful", $certificatebeautifulissue->cmid, 0, false, MUST_EXIST);
 $course = $DB->get_record("course", ["id" => $cm->course], '*', MUST_EXIST);
-
-/** @var certificatebeautiful $certificatebeautiful */
-$certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], '*', MUST_EXIST);
-
-$user = $DB->get_record("user", ["id" => $certificatebeautifulissue->userid]);
-
-$context = context_module::instance($cm->id);
 
 require_course_login($cm->course);
 require_capability('mod/certificatebeautiful:view', $context);
+if ($action !== 'createadmin' && $USER->id != $certificatebeautifulissue->userid) {
+    require_capability('mod/certificatebeautiful:addinstance', $context);
+}
 
 $username = fullname($user);
 $name = "{$certificatebeautiful->name} - {$username}.pdf";
@@ -147,7 +150,7 @@ try {
 }
 
 $certificatebeautifulissueupdate = (object) [
-    "id" => $certificatebeautiful->id,
+    "id" => $certificatebeautifulissue->id,
     "version" => $certificatebeautiful->timemodified,
 ];
 $DB->update_record("certificatebeautiful_issue", $certificatebeautifulissueupdate);

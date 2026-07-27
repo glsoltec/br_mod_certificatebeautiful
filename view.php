@@ -42,8 +42,10 @@ $context = context_module::instance($cm->id);
 
 if ($token) {
     $externalservice = $DB->get_record("external_services", ["shortname" => MOODLE_OFFICIAL_MOBILE_SERVICE]);
-    $externaltoken = $DB->get_record("external_tokens", ["token" => $token, "externalserviceid" => $externalservice->id], "userid");
-    $user = $DB->get_record("user", ["id" => $externaltoken->userid]);
+    $externaltoken = $externalservice
+        ? $DB->get_record("external_tokens", ["token" => $token, "externalserviceid" => $externalservice->id], "userid")
+        : false;
+    $user = $externaltoken ? $DB->get_record("user", ["id" => $externaltoken->userid]) : false;
 
     if ($user) {
         \core\session\manager::login_user($user);
@@ -58,11 +60,14 @@ require_capability("mod/certificatebeautiful:view", $context);
 
 if (optional_param("action", "", PARAM_TEXT) == "delete") {
     require_sesskey();
+    require_capability("mod/certificatebeautiful:addinstance", $context);
     $issueid = required_param("issueid", PARAM_INT);
-    $userid = required_param("userid", PARAM_INT);
-    $issuecode = required_param("issuecode", PARAM_TEXT);
+    $certificatebeautifulissue = $DB->get_record("certificatebeautiful_issue", [
+        "id" => $issueid,
+        "cmid" => $cm->id,
+    ], "*", MUST_EXIST);
 
-    $DB->delete_records("certificatebeautiful_issue", ["id" => $issueid]);
+    $DB->delete_records("certificatebeautiful_issue", ["id" => $certificatebeautifulissue->id]);
 
     $fs = get_file_storage();
     $filerecord = (object) [
@@ -70,8 +75,8 @@ if (optional_param("action", "", PARAM_TEXT) == "delete") {
         "contextid" => $context->id,
         "filearea" => "certificate",
         "filepath" => "/",
-        "itemid" => $userid,
-        "filename" => "{$issuecode}.pdf",
+        "itemid" => $certificatebeautifulissue->userid,
+        "filename" => "{$certificatebeautifulissue->code}.pdf",
     ];
 
     $storedfile = $fs->get_file(
