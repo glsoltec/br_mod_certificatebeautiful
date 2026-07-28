@@ -42,7 +42,7 @@ class certificatebeautiful_course_module_viewed extends course_module_viewed {
      * Initialize the event
      */
     protected function init() {
-        $this->data["objecttable"] = "certificatebeautiful";
         parent::init();
+        $this->data["objecttable"] = "certificatebeautiful";
     }
 }
