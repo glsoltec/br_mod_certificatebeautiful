@@ -149,17 +149,30 @@ function xmldb_certificatebeautiful_upgrade($oldversion) {
             $dbman->create_table($table);
         }
 
+        upgrade_mod_savepoint(true, 2026072501, "certificatebeautiful");
+    }
+
+    if ($oldversion < 2026072800) {
         $table = new xmldb_table("certificatebeautiful_sign_log");
-        $table->add_field("id", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
-        $table->add_field("issueid", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL);
-        $table->add_field("timecreated", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL, null, "0");
-        $table->add_key("primary", XMLDB_KEY_PRIMARY, ["id"]);
-        $table->add_key("issueid", XMLDB_KEY_UNIQUE, ["issueid"]);
-        if (!$dbman->table_exists($table)) {
-            $dbman->create_table($table);
+        if ($dbman->table_exists($table)) {
+            $dbman->drop_table($table);
         }
 
-        upgrade_mod_savepoint(true, 2026072501, "certificatebeautiful");
+        unset_config('sign_pfxfile', 'certificatebeautiful');
+        unset_config('sign_certpassword', 'certificatebeautiful');
+        unset_config('sign_reason', 'certificatebeautiful');
+        unset_config('sign_autosign', 'certificatebeautiful');
+        unset_config('sign_task_interval', 'certificatebeautiful');
+        unset_config('sign_task_lastrun', 'certificatebeautiful');
+
+        $fs = get_file_storage();
+        $syscontextid = context_system::instance()->id;
+        $fs->delete_area_files($syscontextid, 'mod_certificatebeautiful', 'sign_pfxfile');
+        $fs->delete_area_files($syscontextid, 'mod_certificatebeautiful', 'pfxfile');
+        $fs->delete_area_files($syscontextid, 'certificatebeautiful', 'sign_pfxfile');
+        $fs->delete_area_files($syscontextid, 'certificatebeautiful', 'pfxfile');
+
+        upgrade_mod_savepoint(true, 2026072800, "certificatebeautiful");
     }
 
     return true;

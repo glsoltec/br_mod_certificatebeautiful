@@ -136,19 +136,6 @@ $contentpdf = $pagepdf->create_pdf(
 
 $fs->create_file_from_string($filerecord, $contentpdf);
 
-try {
-    $signedpdf = \mod_certificatebeautiful\pdf\signer\signer::sign_pdf($contentpdf);
-    $tmpfile = $fs->get_file(
-        $filerecord->contextid, $filerecord->component,
-        $filerecord->filearea, $filerecord->itemid,
-        $filerecord->filepath, $filerecord->filename);
-    if ($tmpfile) { $tmpfile->delete(); }
-    $fs->create_file_from_string($filerecord, $signedpdf);
-    $contentpdf = $signedpdf;
-} catch (\Exception $e) {
-    debugging('certificatebeautiful signing: ' . $e->getMessage(), DEBUG_DEVELOPER);
-}
-
 $certificatebeautifulissueupdate = (object) [
     "id" => $certificatebeautifulissue->id,
     "version" => $certificatebeautiful->timemodified,

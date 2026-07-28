@@ -34,13 +34,4 @@ $tasks = [
         "month" => "*",
         "dayofweek" => "*",
     ],
-    [
-        "classname" => "\\mod_certificatebeautiful\\task\\sign_certificates",
-        "blocking" => 0,
-        "minute" => "*",
-        "hour" => "*",
-        "day" => "*",
-        "month" => "*",
-        "dayofweek" => "*",
-    ],
 ];
