@@ -137,11 +137,24 @@ function xmldb_certificatebeautiful_upgrade($oldversion) {
 
     if ($oldversion < 2026072501) {
         $table = new xmldb_table("certificatebeautiful_usersignature");
+        $table->add_field("id", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field("userid", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL);
+        $table->add_field("font_style", XMLDB_TYPE_CHAR, "50", null, XMLDB_NOTNULL, null, "autography");
+        $table->add_field("signature_text", XMLDB_TYPE_CHAR, "100", null, XMLDB_NOTNULL, null, "");
+        $table->add_field("timecreated", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL, null, "0");
+        $table->add_field("timemodified", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL, null, "0");
+        $table->add_key("primary", XMLDB_KEY_PRIMARY, ["id"]);
+        $table->add_key("userid", XMLDB_KEY_UNIQUE, ["userid"]);
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
 
         $table = new xmldb_table("certificatebeautiful_sign_log");
+        $table->add_field("id", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field("issueid", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL);
+        $table->add_field("timecreated", XMLDB_TYPE_INTEGER, "10", null, XMLDB_NOTNULL, null, "0");
+        $table->add_key("primary", XMLDB_KEY_PRIMARY, ["id"]);
+        $table->add_key("issueid", XMLDB_KEY_UNIQUE, ["issueid"]);
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
