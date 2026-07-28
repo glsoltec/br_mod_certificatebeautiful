@@ -120,6 +120,7 @@ if ($certificatebeautiful->timemodified != $certificatebeautifulissue->version) 
 
 if ($storedfile) {
     if ($storedfile->get_timecreated() > $certificatebeautifulmodel->timemodified) {
+        certificatebeautiful_require_signed_issue($certificatebeautifulissue);
         certificatebeautiful_show_header($action, $context, $name);
         ob_clean();
         send_stored_file($storedfile, 86400, 0, $action !== 'view');
@@ -143,6 +144,7 @@ $certificatebeautifulissueupdate = (object) [
 ];
 $DB->update_record("certificatebeautiful_issue", $certificatebeautifulissueupdate);
 
+certificatebeautiful_require_signed_issue($certificatebeautifulissue);
 certificatebeautiful_show_header($action, $context, $name);
 ob_clean();
 send_stored_file($storedfile, 86400, 0, $action !== 'view');
@@ -156,6 +158,18 @@ send_stored_file($storedfile, 86400, 0, $action !== 'view');
  *
  * @throws Exception
  */
+function certificatebeautiful_require_signed_issue($issue): void {
+    if (!class_exists('\\local_certificatesign\\manager')) {
+        return;
+    }
+    if (!get_config('local_certificatesign', 'autosign_enabled')) {
+        return;
+    }
+    if (!\local_certificatesign\manager::is_signed((int) $issue->id)) {
+        throw new moodle_exception('pending_signature', 'certificatebeautiful');
+    }
+}
+
 function certificatebeautiful_show_header($action, $context, $name) {
     switch ($action) {
         case "createadmin":

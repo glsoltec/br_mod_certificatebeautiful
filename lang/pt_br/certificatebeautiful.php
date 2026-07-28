@@ -14,3 +14,5 @@ $string['signaturesaved'] = 'Assinatura salva.';
 $string['signaturetext'] = 'Texto da assinatura';
 $string['signaturetext_help'] = 'Informe como seu nome deve aparecer na assinatura.';
 $string['certificate_direct_pdf'] = 'PDF Direto';
+
+$string['pending_signature'] = 'Certificado aguardando assinatura digital. Tente novamente após a execução da tarefa agendada.';

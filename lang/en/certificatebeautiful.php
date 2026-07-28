@@ -176,3 +176,5 @@ $string['signaturesaved'] = 'Signature saved.';
 $string['signaturetext'] = 'Your signature text';
 $string['signaturetext_help'] = 'Enter how your name should appear in the signature.';
 $string['certificate_direct_pdf'] = 'Direct PDF';
+
+$string['pending_signature'] = 'Certificate pending digital signature. Try again after the scheduled task runs.';
