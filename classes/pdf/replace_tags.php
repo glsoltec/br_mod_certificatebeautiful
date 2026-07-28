@@ -187,6 +187,18 @@ class replace_tags {
     public function repace_signature() {
         global $CFG;
 
+        if (function_exists('local_usersignature_get_signature_datauri')) {
+            $datauri = local_usersignature_get_signature_datauri((int) $this->user->id);
+            if ($datauri !== '') {
+                $this->page->htmldata = preg_replace(
+                    '/src=".*?\\/assets\\/signature\\.png"/',
+                    'src="' . $datauri . '"',
+                    $this->page->htmldata
+                );
+                return;
+            }
+        }
+
         $config = get_config("certificatebeautiful");
         if ($config->config_signature_enable && strlen($config->config_signature_text) >= 2) {
             $typography = $config->config_signature_typography;
