@@ -161,6 +161,14 @@ function certificatebeautiful_show_header($action, $context, $name) {
         case "createadmin":
             require_login();
             require_capability('mod/certificatebeautiful:addinstance', $context);
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $name . '"');
+            header('Cache-Control: public, must-revalidate, max-age=0');
+            header('Pragma: public');
+            header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+            header('Content-Description: File Transfer');
+            header('Content-Transfer-Encoding: binary');
             break;
         case "view":
             header('Content-Type: application/pdf');
