@@ -102,11 +102,11 @@ $PAGE->set_title($course->shortname . ": " . $certificatebeautiful->name);
 $PAGE->set_heading(format_string($course->fullname));
 
 $event = certificatebeautiful_course_module_viewed::create([
-    "objectid" => $PAGE->cm->instance,
+    "objectid" => $cm->instance,
     "context" => $PAGE->context,
 ]);
 $event->add_record_snapshot("course", $PAGE->course);
-$event->add_record_snapshot($PAGE->cm->modname, $certificatebeautiful);
+$event->add_record_snapshot("certificatebeautiful", $certificatebeautiful);
 $event->trigger();
 
 // Update "viewed" state if required by completion system.
