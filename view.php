@@ -155,6 +155,14 @@ if (has_capability("mod/certificatebeautiful:addinstance", $context)) {
 
         if ($token) {
             $mobilepdf = "{$urlbase}&action=view&token=" . urlencode($token);
+            $fs = get_file_storage();
+            $storedfile = $fs->get_file($context->id, "mod_certificatebeautiful", "certificate",
+                $certificatebeautifulissue->userid, "/", "{$certificatebeautifulissue->code}.pdf");
+            if ($storedfile) {
+                $mobilepdf = "{$CFG->wwwroot}/tokenpluginfile.php/" . rawurlencode($token)
+                    . "/{$context->id}/mod_certificatebeautiful/certificate/"
+                    . $certificatebeautifulissue->userid . "/{$certificatebeautifulissue->code}.pdf";
+            }
             $data["pdf-direct-url"] = $mobilepdf;
             $data["pdf-viewer-url"] = "{$viewerurl}?file=" . urlencode($mobilepdf);
         }

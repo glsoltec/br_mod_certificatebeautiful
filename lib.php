@@ -409,6 +409,22 @@ function certificatebeautiful_signature_save_meta(int $userid, string $font, str
 function certificatebeautiful_pluginfile(
     $course, $cm, $context, string $filearea, array $args, bool $forcedownload, array $options = []
 ): void {
+    if ($filearea === 'certificate') {
+        if ($context->contextlevel != CONTEXT_MODULE || !$cm) {
+            send_file_not_found();
+        }
+        require_login($course, false, $cm);
+        require_capability('mod/certificatebeautiful:view', $context);
+        $itemid = (int) array_shift($args);
+        $filename = array_pop($args);
+        $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
+        $file = get_file_storage()->get_file($context->id, 'mod_certificatebeautiful', 'certificate', $itemid, $filepath, $filename);
+        if (!$file) {
+            send_file_not_found();
+        }
+        send_stored_file($file, 86400, 0, $forcedownload, $options);
+    }
+
     if ($context->contextlevel != CONTEXT_USER) {
         send_file_not_found();
     }

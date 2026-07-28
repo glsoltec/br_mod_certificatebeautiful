@@ -78,7 +78,11 @@ if ($action == "createadmin") {
 
 $course = $DB->get_record("course", ["id" => $cm->course], '*', MUST_EXIST);
 
-require_course_login($cm->course);
+if ($token) {
+    require_course_login($cm->course, false, null, false, true);
+} else {
+    require_course_login($cm->course);
+}
 require_capability('mod/certificatebeautiful:view', $context);
 if ($action !== 'createadmin' && $USER->id != $certificatebeautifulissue->userid) {
     require_capability('mod/certificatebeautiful:addinstance', $context);
@@ -116,12 +120,9 @@ if ($certificatebeautiful->timemodified != $certificatebeautifulissue->version) 
 
 if ($storedfile) {
     if ($storedfile->get_timecreated() > $certificatebeautifulmodel->timemodified) {
-        $content = $storedfile->get_content();
-
         certificatebeautiful_show_header($action, $context, $name);
-        header('Content-Length: ' . strlen($content));
         ob_clean();
-        echo $content;
+        send_stored_file($storedfile, 86400, 0, $action !== 'view');
         die();
     } else {
         $storedfile->delete();
@@ -134,7 +135,7 @@ $pagepdf = new page_pdf();
 $contentpdf = $pagepdf->create_pdf(
     $certificatebeautiful, $certificatebeautifulissue, $certificatebeautifulmodel, $user, $course);
 
-$fs->create_file_from_string($filerecord, $contentpdf);
+$storedfile = $fs->create_file_from_string($filerecord, $contentpdf);
 
 $certificatebeautifulissueupdate = (object) [
     "id" => $certificatebeautifulissue->id,
@@ -143,9 +144,8 @@ $certificatebeautifulissueupdate = (object) [
 $DB->update_record("certificatebeautiful_issue", $certificatebeautifulissueupdate);
 
 certificatebeautiful_show_header($action, $context, $name);
-header('Content-Length: ' . strlen($contentpdf));
 ob_clean();
-echo $contentpdf;
+send_stored_file($storedfile, 86400, 0, $action !== 'view');
 
 /**
  * Function certificatebeautiful_show_header
