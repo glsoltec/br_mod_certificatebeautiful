@@ -64,7 +64,8 @@ $certificatebeautifulmodel->pages_info_object = json_decode($certificatebeautifu
 
 $cssdata = optional_param("cssdata", false, PARAM_RAW);
 $htmldata = optional_param("htmldata", false, PARAM_RAW);
-if ($cssdata && $htmldata && sesskey() == optional_param("sesskey", false, PARAM_RAW)) {
+if ($cssdata && $htmldata) {
+    require_sesskey();
 
     $cssdata = preg_replace('/\*(\s+)?\{.*?\}|body(\s+)?\{.*?\}/', "", $cssdata);
     $htmldata = preg_replace('/<body>(.*)<\/body>/', "$1", $htmldata);

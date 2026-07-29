@@ -16,3 +16,5 @@ $string['signaturetext_help'] = 'Informe como seu nome deve aparecer na assinatu
 $string['certificate_direct_pdf'] = 'PDF Direto';
 
 $string['pending_signature'] = 'Certificado aguardando assinatura digital. Tente novamente após a execução da tarefa agendada.';
+$string['missing_signature_plugin'] = 'Sistema de assinatura digital não disponível. Entre em contato com o administrador.';
+$string['signature_disabled'] = 'Assinatura digital desabilitada no momento. Entre em contato com o administrador.';

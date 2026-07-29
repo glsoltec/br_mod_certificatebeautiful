@@ -159,6 +159,13 @@ if (has_capability("mod/certificatebeautiful:addinstance", $context)) {
             $data["pdf-viewer-url"] = "{$viewerurl}?file=" . urlencode($mobilepdf);
         }
 
+        if (class_exists('\\local_certificatesign\\manager')) {
+            \local_certificatesign\manager::audit_access(
+                $certificatebeautifulissue,
+                $token ? 'token_view' : 'view'
+            );
+        }
+
         echo $OUTPUT->render_from_template("mod_certificatebeautiful/view", $data);
     }
 }

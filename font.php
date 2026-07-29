@@ -1,6 +1,4 @@
 <?php
-define('NO_MOODLE_COOKIES', true);
-
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php');
 require_once(__DIR__ . '/lib.php');
@@ -44,6 +42,4 @@ if ($path === null) {
 header('Content-Type: ' . $mime);
 header('Content-Length: ' . filesize($path));
 header('Cache-Control: public, max-age=31536000, immutable');
-header('Access-Control-Allow-Origin: *');
-readfile($path);
-die;
+send_file($path, basename($path), 31536000, 0, false, false, $mime);

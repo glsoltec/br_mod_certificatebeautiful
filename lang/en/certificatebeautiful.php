@@ -178,3 +178,5 @@ $string['signaturetext_help'] = 'Enter how your name should appear in the signat
 $string['certificate_direct_pdf'] = 'Direct PDF';
 
 $string['pending_signature'] = 'Certificate pending digital signature. Try again after the scheduled task runs.';
+$string['missing_signature_plugin'] = 'Digital signature system not available. Contact the administrator.';
+$string['signature_disabled'] = 'Digital signature is currently disabled. Contact the administrator.';

@@ -88,6 +88,14 @@ if ($action !== 'createadmin' && $USER->id != $certificatebeautifulissue->userid
     require_capability('mod/certificatebeautiful:addinstance', $context);
 }
 
+if ($token) {
+    $auditaction = 'token_view';
+} elseif ($action === 'download') {
+    $auditaction = 'download';
+} else {
+    $auditaction = 'view';
+}
+
 $username = fullname($user);
 $name = "{$certificatebeautiful->name} - {$username}.pdf";
 
@@ -121,6 +129,7 @@ if ($certificatebeautiful->timemodified != $certificatebeautifulissue->version) 
 if ($storedfile) {
     if ($storedfile->get_timecreated() > $certificatebeautifulmodel->timemodified) {
         certificatebeautiful_require_signed_issue($certificatebeautifulissue);
+        certificatebeautiful_audit_access($certificatebeautifulissue, $auditaction);
         certificatebeautiful_show_header($action, $context, $name);
         ob_clean();
         send_stored_file($storedfile, 86400, 0, $action !== 'view');
@@ -145,6 +154,7 @@ $certificatebeautifulissueupdate = (object) [
 $DB->update_record("certificatebeautiful_issue", $certificatebeautifulissueupdate);
 
 certificatebeautiful_require_signed_issue($certificatebeautifulissue);
+certificatebeautiful_audit_access($certificatebeautifulissue, $auditaction);
 certificatebeautiful_show_header($action, $context, $name);
 ob_clean();
 send_stored_file($storedfile, 86400, 0, $action !== 'view');
@@ -160,14 +170,22 @@ send_stored_file($storedfile, 86400, 0, $action !== 'view');
  */
 function certificatebeautiful_require_signed_issue($issue): void {
     if (!class_exists('\\local_certificatesign\\manager')) {
-        return;
+        throw new moodle_exception('missing_signature_plugin', 'certificatebeautiful');
     }
     if (!get_config('local_certificatesign', 'autosign_enabled')) {
-        return;
+        throw new moodle_exception('signature_disabled', 'certificatebeautiful');
     }
     if (!\local_certificatesign\manager::is_signed((int) $issue->id)) {
+        \local_certificatesign\manager::audit_access($issue, 'pending');
         throw new moodle_exception('pending_signature', 'certificatebeautiful');
     }
+}
+
+function certificatebeautiful_audit_access($issue, string $action): void {
+    if (!class_exists('\\local_certificatesign\\manager')) {
+        return;
+    }
+    \local_certificatesign\manager::audit_access($issue, $action);
 }
 
 function certificatebeautiful_show_header($action, $context, $name) {
@@ -205,7 +223,7 @@ function certificatebeautiful_show_header($action, $context, $name) {
             break;
 
         default:
-            die("OPS.....");
+            throw new \moodle_exception('invalidaction', 'moodle');
     }
 }
 

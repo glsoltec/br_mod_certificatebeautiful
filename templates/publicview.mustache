@@ -35,34 +35,34 @@
     <table class="table table-striped">
         <tr>
             <th>{{#str}}validate_certificate_code,certificatebeautiful{{/str}}</th>
-            <td><a href="{{{urlcode}}}" target="_blank">{{{code}}}</a></td>
+            <td><a href="{{urlcode}}" target="_blank">{{code}}</a></td>
         </tr>
         <tr>
             <th>{{#str}}validate_certificate_date,certificatebeautiful{{/str}}</th>
-            <td>{{{date}}}</td>
+            <td>{{date}}</td>
         </tr>
         {{#username}}
             <tr>
                 <th>{{#str}}validate_certificate_user,certificatebeautiful{{/str}}</th>
-                <td>{{{username}}}</td>
+                <td>{{username}}</td>
             </tr>
         {{/username}}
         {{#useremail}}
             <tr>
                 <th>{{#str}}email{{/str}}</th>
-                <td>{{{useremail}}}</td>
+                <td>{{useremail}}</td>
             </tr>
         {{/useremail}}
         {{#name}}
             <tr>
                 <th>{{#str}}validate_certificate_name,certificatebeautiful{{/str}}</th>
-                <td>{{{name}}}</td>
+                <td>{{name}}</td>
             </tr>
         {{/name}}
         {{#course}}
             <tr>
                 <th>{{#str}}validate_certificate_course,certificatebeautiful{{/str}}</th>
-                <td>{{{course}}}</td>
+                <td>{{course}}</td>
             </tr>
         {{/course}}
     </table>
