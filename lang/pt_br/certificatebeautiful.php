@@ -162,6 +162,7 @@ $string['validate_certificate_title'] = 'Verificar autenticidade do certificado'
 $string['validate_certificate_user'] = 'Emitido para';
 $string['validate_certificate_validate'] = 'Validar';
 $string['view_my_certificate'] = 'Visualizar meu certificado em nova aba';
+$string['view_certificate'] = 'Visualizar certificado';
 
 $string['choosestyle'] = 'Escolha o estilo';
 $string['confirmdelete'] = 'Tem certeza que deseja excluir sua assinatura?';

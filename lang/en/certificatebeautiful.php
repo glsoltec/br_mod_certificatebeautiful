@@ -162,6 +162,7 @@ $string['validate_certificate_title'] = 'Verify certificate authenticity';
 $string['validate_certificate_user'] = 'Issued to';
 $string['validate_certificate_validate'] = 'Validate';
 $string['view_my_certificate'] = 'View my certificate in a new tab';
+$string['view_certificate'] = 'View certificate';
 
 $string['choosestyle'] = 'Choose style';
 $string['confirmdelete'] = 'Are you sure you want to delete your signature?';
