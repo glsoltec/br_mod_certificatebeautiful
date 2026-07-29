@@ -88,6 +88,13 @@ if ($action !== 'createadmin' && $USER->id != $certificatebeautifulissue->userid
     require_capability('mod/certificatebeautiful:addinstance', $context);
 }
 
+$PAGE->set_context($context);
+$params = ['code' => $code, 'action' => $action];
+if ($token) {
+    $params['token'] = $token;
+}
+$PAGE->set_url('/mod/certificatebeautiful/view-pdf.php', $params);
+
 if ($token) {
     $auditaction = 'token_view';
 } elseif ($action === 'download') {
