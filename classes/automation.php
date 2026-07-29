@@ -101,7 +101,11 @@ class automation {
         self::ensure_pdf_file($certificatebeautiful, $issue, $user, $course, $cm);
 
         if ($created && !empty($certificatebeautiful->notifyuser)) {
-            self::send_notification($certificatebeautiful, $course, $cm, $user);
+            $defer = class_exists('\\local_certificatesign\\manager')
+                && \local_certificatesign\manager::is_configured();
+            if (!$defer) {
+                self::send_notification($certificatebeautiful, $course, $cm, $user);
+            }
         }
 
         return true;
