@@ -104,7 +104,7 @@ class mod_certificatebeautiful_mod_form extends moodleform_mod {
         $mform->hideIf("triggercmid", "autotrigger", "neq", automation::TRIGGER_ACTIVITY_COMPLETION);
 
         $mform->addElement("text", "gradepass", get_string("gradepass", "certificatebeautiful"));
-        $mform->setType("gradepass", PARAM_RAW_TRIMMED);
+        $mform->setType("gradepass", PARAM_FLOAT);
         $mform->hideIf("gradepass", "autotrigger", "neq", automation::TRIGGER_GRADE_THRESHOLD);
 
         $mform->addElement("advcheckbox", "notifyuser", get_string("notifyuser", "certificatebeautiful"));

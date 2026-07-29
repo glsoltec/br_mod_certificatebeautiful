@@ -58,7 +58,7 @@ if ($usesections) {
 
 if (!$certificatebeautifuls = get_all_instances_in_course("certificatebeautiful", $course)) {
     notice(get_string("thereareno", "moodle", get_string("modulenameplural", "mod_certificatebeautiful")));
-    exit;
+    return;
 }
 
 $table = new html_table();
