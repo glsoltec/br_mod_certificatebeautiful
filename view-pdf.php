@@ -169,6 +169,8 @@ send_stored_file($storedfile, 86400, 0, $action !== 'view');
  * @throws Exception
  */
 function certificatebeautiful_require_signed_issue($issue): void {
+    global $OUTPUT;
+
     if (!class_exists('\\local_certificatesign\\manager')) {
         return;
     }
@@ -177,7 +179,14 @@ function certificatebeautiful_require_signed_issue($issue): void {
     }
     if (!\local_certificatesign\manager::is_signed((int) $issue->id)) {
         \local_certificatesign\manager::audit_access($issue, 'pending');
-        throw new moodle_exception('pending_signature', 'certificatebeautiful');
+        ob_end_clean();
+        echo $OUTPUT->header();
+        echo $OUTPUT->notification(
+            get_string("pending_signature", "certificatebeautiful"),
+            \core\output\notification::NOTIFY_WARNING
+        );
+        echo $OUTPUT->footer();
+        die();
     }
 }
 

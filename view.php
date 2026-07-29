@@ -142,6 +142,11 @@ if (has_capability("mod/certificatebeautiful:addinstance", $context)) {
             get_string("certificate_not_issued", "certificatebeautiful"),
             "info"
         );
+    } elseif (certificatebeautiful_is_pending_signature($certificatebeautifulissue)) {
+        echo $OUTPUT->notification(
+            get_string("pending_signature", "certificatebeautiful"),
+            "warning"
+        );
     } else {
         $viewerurl = "{$CFG->wwwroot}/mod/certificatebeautiful/_pdfjs-2.8.335-legacy/web/viewer.html";
         $urlbase = "{$CFG->wwwroot}/mod/certificatebeautiful/view-pdf.php?code={$certificatebeautifulissue->code}";
@@ -171,3 +176,13 @@ if (has_capability("mod/certificatebeautiful:addinstance", $context)) {
 }
 
 echo $OUTPUT->footer();
+
+function certificatebeautiful_is_pending_signature($issue): bool {
+    if (!class_exists('\\local_certificatesign\\manager')) {
+        return false;
+    }
+    if (!\local_certificatesign\manager::is_configured()) {
+        return false;
+    }
+    return !\local_certificatesign\manager::is_signed((int) $issue->id);
+}
