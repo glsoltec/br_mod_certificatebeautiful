@@ -191,7 +191,7 @@ class replace_tags {
             $datauri = local_usersignature_get_signature_datauri((int) $this->user->id);
             if ($datauri !== '') {
                 $this->page->htmldata = preg_replace(
-                    '/src=".*?\\/assets\\/signature\\.png"/',
+                    '/src="[^"]*signature\.png"/',
                     'src="' . $datauri . '"',
                     $this->page->htmldata
                 );
@@ -217,7 +217,7 @@ class replace_tags {
 
                 $svgdata = 'src="data:image/svg+xml;base64,' . base64_encode($svg) . '"';
 
-                $this->page->htmldata = preg_replace('/src=".*?\/assets\/signature.png"/', $svgdata, $this->page->htmldata);
+                $this->page->htmldata = preg_replace('/src="[^"]*signature\.png"/', $svgdata, $this->page->htmldata);
             }
         }
     }
