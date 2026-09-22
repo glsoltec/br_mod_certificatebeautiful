@@ -154,11 +154,9 @@ if ($storedfile) {
     if ($storedfile->get_timecreated() > $certificatebeautifulmodel->timemodified) {
         certificatebeautiful_require_signed_issue($certificatebeautifulissue);
         certificatebeautiful_audit_access($certificatebeautifulissue, $auditaction);
-        $content = $storedfile->get_content();
         certificatebeautiful_show_header($action, $name);
-        header('Content-Length: ' . strlen($content));
         ob_clean();
-        echo $content;
+        send_stored_file($storedfile, 86400, 0, $action !== 'view');
         die();
     }
 
@@ -176,7 +174,7 @@ $contentpdf = $pagepdf->create_pdf(
     $course
 );
 
-$fs->create_file_from_string($filerecord, $contentpdf);
+$storedfile = $fs->create_file_from_string($filerecord, $contentpdf);
 
 issue::update_version(
     (int)$certificatebeautifulissue->id,
@@ -186,9 +184,8 @@ issue::update_version(
 certificatebeautiful_require_signed_issue($certificatebeautifulissue);
 certificatebeautiful_audit_access($certificatebeautifulissue, $auditaction);
 certificatebeautiful_show_header($action, $name);
-header('Content-Length: ' . strlen($contentpdf));
 ob_clean();
-echo $contentpdf;
+send_stored_file($storedfile, 86400, 0, $action !== 'view');
 
 /**
  * Blocks certificate delivery until the digital signing task has signed the issue.
