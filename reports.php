@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Report for certificatebeautiful.
+ * Course report list for certificatebeautiful.
  *
  * @package   mod_certificatebeautiful
  * @copyright 2025 Eduardo Kraus https://eduardokraus.com/
@@ -36,7 +36,6 @@ $PAGE->set_heading("{$course->fullname}: " . get_string("modulename", "certifica
 $PAGE->add_body_class("certificatebeautiful-pages");
 
 require_course_login($course);
-require_capability('mod/certificatebeautiful:viewreport', $context);
 
 echo $OUTPUT->header();
 
@@ -50,15 +49,25 @@ $sql = "SELECT cm.*, cb.name
          WHERE cb.course = :course
            AND md.name   = 'certificatebeautiful'";
 $certificatebeautifuls = $DB->get_records_sql($sql, ["course" => $courseid]);
+
 $reportnode = ["children" => []];
 foreach ($certificatebeautifuls as $certificatebeautiful) {
+    $modulecontext = context_module::instance($certificatebeautiful->id);
+    if (!has_capability("mod/certificatebeautiful:viewreport", $modulecontext)) {
+        continue;
+    }
+
     $reportnode["children"][] = [
         "display" => true,
         "action" => "{$CFG->wwwroot}/mod/certificatebeautiful/report.php?id={$certificatebeautiful->id}",
-        "text" => "{$certificatebeautiful->name}",
+        "text" => format_string($certificatebeautiful->name),
     ];
 }
 
-echo $OUTPUT->render_from_template('core/report_link_page', ["node" => $reportnode]);
+if ($reportnode["children"]) {
+    echo $OUTPUT->render_from_template('core/report_link_page', ["node" => $reportnode]);
+} else {
+    echo $OUTPUT->notification(get_string("nothingtodisplay"), "info");
+}
 
 echo $OUTPUT->footer();

@@ -26,10 +26,6 @@ defined('MOODLE_INTERNAL') || die;
 
 $string['add_new_model'] = 'Add new model';
 $string['add_new_page'] = 'Add a new page to the certificate';
-$string['autogenerate'] = 'Generate certificates automatically';
-$string['autogenerate_help'] = 'When enabled, the scheduled task will automatically create certificate issues and PDF files.';
-$string['autogenerate_task_name'] = 'Automatic Beautiful Certificate generation';
-$string['automationheader'] = 'Automatic certificate generation';
 $string['autotrigger'] = 'Automatic generation trigger';
 $string['autotrigger_activity'] = 'Activity required for completion trigger';
 $string['autotrigger_activitycompletion'] = 'Activity completion';
@@ -59,6 +55,7 @@ $string['certificate_not_issued'] = 'Your certificate has not been issued yet.';
 $string['certificatebeautiful-page_empty'] = 'Empty';
 $string['certificatebeautiful:addinstance'] = 'Add instance';
 $string['certificatebeautiful:delete'] = 'Delete certificate instance';
+$string['certificatebeautiful:managemodels'] = 'Manage Beautiful certificate models';
 $string['certificatebeautiful:view'] = 'Allow the user to view the Beautiful certificate';
 $string['certificatebeautiful:viewreport'] = 'View Beautiful certificate reports';
 $string['certpresented'] = 'This certificate is proudly presented to';
@@ -114,6 +111,7 @@ $string['notification_body'] = 'Hello {$a->fullname},<br><br>Your certificate <s
 $string['notification_subject'] = 'Your certificate is available: {$a->certificatename}';
 $string['notifyuser'] = 'Send email notification when the certificate is issued';
 $string['only_format'] = 'Bringing only {$a} format';
+$string['page-mod-certificatebeautiful-x'] = 'Any certificate beautiful module page';
 $string['pages_certificate'] = 'Certificate pages';
 $string['pluginadministration'] = 'Course certificate administration';
 $string['pluginname'] = 'Beautiful certificate';

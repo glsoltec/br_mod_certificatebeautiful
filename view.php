@@ -22,13 +22,13 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use mod_certificatebeautiful\access_manager;
+use mod_certificatebeautiful\automation;
 use mod_certificatebeautiful\event\certificatebeautiful_course_module_viewed;
-use mod_certificatebeautiful\issue;
 use mod_certificatebeautiful\report\certificatebeautiful_view;
 use mod_certificatebeautiful\vo\certificatebeautiful;
 
 require_once("../../config.php");
-require_once("{$CFG->dirroot}/mod/certificatebeautiful/classes/issue.php");
 
 global $PAGE, $USER, $CFG;
 
@@ -37,7 +37,6 @@ $token = optional_param("token", false, PARAM_TEXT);
 
 $cm = get_coursemodule_from_id("certificatebeautiful", $id, 0, false, MUST_EXIST);
 $course = $DB->get_record("course", ["id" => $cm->course], "*", MUST_EXIST);
-
 $context = context_module::instance($cm->id);
 
 if ($token) {
@@ -56,9 +55,13 @@ if ($token) {
 } else {
     require_course_login($course, true, $cm);
 }
-require_capability("mod/certificatebeautiful:view", $context);
+// A report-only role may manage/view issued certificates without needing the student-facing view capability.
+if (!has_capability("mod/certificatebeautiful:viewreport", $context)) {
+    require_capability("mod/certificatebeautiful:view", $context);
+}
 
-if (optional_param("action", "", PARAM_TEXT) == "delete") {
+if (optional_param("action", "", PARAM_ALPHA) === "delete") {
+    access_manager::require_manage_issues($context);
     require_sesskey();
     require_capability("mod/certificatebeautiful:addinstance", $context);
     $issueid = required_param("issueid", PARAM_INT);
@@ -70,7 +73,7 @@ if (optional_param("action", "", PARAM_TEXT) == "delete") {
     $DB->delete_records("certificatebeautiful_issue", ["id" => $certificatebeautifulissue->id]);
 
     $fs = get_file_storage();
-    $filerecord = (object) [
+    $filerecord = (object)[
         "component" => "mod_certificatebeautiful",
         "contextid" => $context->id,
         "filearea" => "certificate",
@@ -80,9 +83,12 @@ if (optional_param("action", "", PARAM_TEXT) == "delete") {
     ];
 
     $storedfile = $fs->get_file(
-        $filerecord->contextid, $filerecord->component,
-        $filerecord->filearea, $filerecord->itemid,
-        $filerecord->filepath, $filerecord->filename
+        $filerecord->contextid,
+        $filerecord->component,
+        $filerecord->filearea,
+        $filerecord->itemid,
+        $filerecord->filepath,
+        $filerecord->filename
     );
 
     if ($storedfile) {
@@ -115,7 +121,7 @@ $completion->set_module_viewed($cm);
 
 echo $OUTPUT->header();
 
-if (has_capability("mod/certificatebeautiful:addinstance", $context)) {
+if (has_capability("mod/certificatebeautiful:viewreport", $context)) {
     $title = get_string("report_filename", "certificatebeautiful");
     echo $OUTPUT->heading($title, 2, "main", "certificatebeautifulheading");
 
@@ -126,16 +132,15 @@ if (has_capability("mod/certificatebeautiful:addinstance", $context)) {
     );
     $table->define_baseurl("{$CFG->wwwroot}/mod/certificatebeautiful/report.php?id={$cm->id}");
     $table->out(40, true);
-
 } else {
-    if (!empty($certificatebeautiful->autogenerate)) {
-        $certificatebeautifulissue = issue::get($USER, $certificatebeautiful, $cm);
-    } else {
-        $certificatebeautifulissue = $DB->get_record("certificatebeautiful_issue", [
-            "userid" => $USER->id,
-            "cmid" => $cm->id,
-        ]);
+    if ($certificatebeautiful->autotrigger !== automation::TRIGGER_NONE) {
+        automation::process_user($cm->id, $USER->id);
     }
+
+    $certificatebeautifulissue = $DB->get_record("certificatebeautiful_issue", [
+        "userid" => $USER->id,
+        "cmid" => $cm->id,
+    ]);
 
     if (!$certificatebeautifulissue) {
         echo $OUTPUT->notification(

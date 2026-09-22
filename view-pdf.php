@@ -15,13 +15,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * view PDF file
+ * View PDF file.
  *
  * @package   mod_certificatebeautiful
  * @copyright 2025 Eduardo Kraus https://eduardokraus.com/
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use mod_certificatebeautiful\access_manager;
 use mod_certificatebeautiful\issue;
 use mod_certificatebeautiful\pdf\page_pdf;
 use mod_certificatebeautiful\vo\certificatebeautiful;
@@ -36,8 +37,7 @@ require_once("{$CFG->libdir}/tablelib.php");
 
 ob_start();
 
-$code = required_param("code", PARAM_TEXT);
-$action = required_param("action", PARAM_TEXT);
+$action = required_param("action", PARAM_ALPHA);
 
 $token = optional_param("token", false, PARAM_TEXT);
 if ($token) {
@@ -53,40 +53,56 @@ if ($token) {
     }
 }
 
-if ($action == "createadmin") {
-    $userid = required_param("userid", PARAM_INT);
-    $user = $DB->get_record("user", ["id" => $userid], '*', MUST_EXIST);
-
+if ($action === "createadmin") {
     $cmid = required_param("cmid", PARAM_INT);
+    $userid = required_param("userid", PARAM_INT);
+
     $cm = get_coursemodule_from_id("certificatebeautiful", $cmid, 0, false, MUST_EXIST);
-
+    $course = $DB->get_record("course", ["id" => $cm->course], "*", MUST_EXIST);
     $context = context_module::instance($cm->id);
-    require_login();
-    require_capability('mod/certificatebeautiful:addinstance', $context);
 
-    $certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], '*', MUST_EXIST);
+    require_course_login($course, true, $cm);
+    access_manager::require_manage_issues($context);
+    require_sesskey();
+
+    $user = $DB->get_record("user", ["id" => $userid, "deleted" => 0], "*", MUST_EXIST);
+    $coursecontext = context_course::instance($course->id);
+    if (!is_enrolled($coursecontext, $user, "", true)) {
+        throw new invalid_parameter_exception("The selected user is not actively enrolled in this course.");
+    }
+
+    $certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], "*", MUST_EXIST);
+
     $certificatebeautifulissue = issue::get($user, $certificatebeautiful, $cm);
-} else {
-    /** @var certificatebeautiful_issue $certificatebeautifulissue */
-    $certificatebeautifulissue = $DB->get_record("certificatebeautiful_issue", ["code" => $code], '*', MUST_EXIST);
-
-    $cm = get_coursemodule_from_id("certificatebeautiful", $certificatebeautifulissue->cmid, 0, false, MUST_EXIST);
-    $certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], '*', MUST_EXIST);
-    $user = $DB->get_record("user", ["id" => $certificatebeautifulissue->userid], '*', MUST_EXIST);
-    $context = context_module::instance($cm->id);
+    redirect(new moodle_url('/mod/certificatebeautiful/view-pdf.php', [
+        "code" => $certificatebeautifulissue->code,
+        "action" => "view",
+    ]));
 }
 
-$course = $DB->get_record("course", ["id" => $cm->course], '*', MUST_EXIST);
+if (!in_array($action, ["view", "download"], true)) {
+    throw new invalid_parameter_exception("Invalid certificate action.");
+}
+
+$code = required_param("code", PARAM_TEXT);
+
+/** @var certificatebeautiful_issue $certificatebeautifulissue */
+$certificatebeautifulissue = $DB->get_record("certificatebeautiful_issue", ["code" => $code], "*", MUST_EXIST);
+
+$cm = get_coursemodule_from_id("certificatebeautiful", $certificatebeautifulissue->cmid, 0, false, MUST_EXIST);
+$course = $DB->get_record("course", ["id" => $cm->course], "*", MUST_EXIST);
+$context = context_module::instance($cm->id);
 
 if ($token) {
-    require_course_login($cm->course, false, null, false, true);
+    require_course_login($course, false, null, false, true);
 } else {
-    require_course_login($cm->course);
+    require_course_login($course, true, $cm);
 }
-require_capability('mod/certificatebeautiful:view', $context);
-if ($action !== 'createadmin' && $USER->id != $certificatebeautifulissue->userid) {
-    require_capability('mod/certificatebeautiful:addinstance', $context);
-}
+access_manager::require_view_issue($certificatebeautifulissue, $context);
+
+/** @var certificatebeautiful $certificatebeautiful */
+$certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->instance], "*", MUST_EXIST);
+$user = $DB->get_record("user", ["id" => $certificatebeautifulissue->userid], "*", MUST_EXIST);
 
 if ($token) {
     $auditaction = 'token_view';
@@ -97,7 +113,7 @@ if ($token) {
 }
 
 $username = fullname($user);
-$name = "{$certificatebeautiful->name} - {$username}.pdf";
+$name = clean_filename("{$certificatebeautiful->name} - {$username}.pdf");
 
 $fs = get_file_storage();
 $filerecord = (object)[
@@ -111,13 +127,21 @@ $filerecord = (object)[
 ];
 
 /** @var certificatebeautiful_model $certificatebeautifulmodel */
-$certificatebeautifulmodel = $DB->get_record("certificatebeautiful_model",
-    ["id" => $certificatebeautiful->model], "*", MUST_EXIST);
+$certificatebeautifulmodel = $DB->get_record(
+    "certificatebeautiful_model",
+    ["id" => $certificatebeautiful->model],
+    "*",
+    MUST_EXIST
+);
 
 $storedfile = $fs->get_file(
-    $filerecord->contextid, $filerecord->component,
-    $filerecord->filearea, $filerecord->itemid,
-    $filerecord->filepath, $filerecord->filename);
+    $filerecord->contextid,
+    $filerecord->component,
+    $filerecord->filearea,
+    $filerecord->itemid,
+    $filerecord->filepath,
+    $filerecord->filename
+);
 
 if ($certificatebeautiful->timemodified != $certificatebeautifulissue->version) {
     if ($storedfile) {
@@ -130,43 +154,50 @@ if ($storedfile) {
     if ($storedfile->get_timecreated() > $certificatebeautifulmodel->timemodified) {
         certificatebeautiful_require_signed_issue($certificatebeautifulissue);
         certificatebeautiful_audit_access($certificatebeautifulissue, $auditaction);
-        certificatebeautiful_show_header($action, $context, $name);
+        $content = $storedfile->get_content();
+        certificatebeautiful_show_header($action, $name);
+        header('Content-Length: ' . strlen($content));
         ob_clean();
-        send_stored_file($storedfile, 86400, 0, $action !== 'view');
+        echo $content;
         die();
-    } else {
-        $storedfile->delete();
     }
+
+    $storedfile->delete();
 }
 
 $certificatebeautifulmodel->pages_info_object = json_decode($certificatebeautifulmodel->pages_info);
 
 $pagepdf = new page_pdf();
 $contentpdf = $pagepdf->create_pdf(
-    $certificatebeautiful, $certificatebeautifulissue, $certificatebeautifulmodel, $user, $course);
+    $certificatebeautiful,
+    $certificatebeautifulissue,
+    $certificatebeautifulmodel,
+    $user,
+    $course
+);
 
-$storedfile = $fs->create_file_from_string($filerecord, $contentpdf);
+$fs->create_file_from_string($filerecord, $contentpdf);
 
-$certificatebeautifulissueupdate = (object) [
-    "id" => $certificatebeautifulissue->id,
-    "version" => $certificatebeautiful->timemodified,
-];
-$DB->update_record("certificatebeautiful_issue", $certificatebeautifulissueupdate);
+issue::update_version(
+    (int)$certificatebeautifulissue->id,
+    (int)$certificatebeautiful->timemodified
+);
 
 certificatebeautiful_require_signed_issue($certificatebeautifulissue);
 certificatebeautiful_audit_access($certificatebeautifulissue, $auditaction);
-certificatebeautiful_show_header($action, $context, $name);
+certificatebeautiful_show_header($action, $name);
+header('Content-Length: ' . strlen($contentpdf));
 ob_clean();
-send_stored_file($storedfile, 86400, 0, $action !== 'view');
+echo $contentpdf;
 
 /**
- * Function certificatebeautiful_show_header
+ * Blocks certificate delivery until the digital signing task has signed the issue.
  *
- * @param string $action
- * @param context $context
- * @param string $name
+ * This keeps the local (fork) integration with the local_certificatesign plugin: when
+ * that plugin is installed and configured, a pending certificate is not delivered.
  *
- * @throws Exception
+ * @param stdClass $issue Certificate issue record.
+ * @return void
  */
 function certificatebeautiful_require_signed_issue($issue): void {
     global $OUTPUT;
@@ -190,6 +221,13 @@ function certificatebeautiful_require_signed_issue($issue): void {
     }
 }
 
+/**
+ * Registers an access event in the local certificate signing audit log, when available.
+ *
+ * @param stdClass $issue Certificate issue record.
+ * @param string $action Audit action name.
+ * @return void
+ */
 function certificatebeautiful_audit_access($issue, string $action): void {
     if (!class_exists('\\local_certificatesign\\manager')) {
         return;
@@ -197,43 +235,28 @@ function certificatebeautiful_audit_access($issue, string $action): void {
     \local_certificatesign\manager::audit_access($issue, $action);
 }
 
-function certificatebeautiful_show_header($action, $context, $name) {
-    switch ($action) {
-        case "createadmin":
-            require_login();
-            require_capability('mod/certificatebeautiful:addinstance', $context);
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $name . '"');
-            header('Cache-Control: public, must-revalidate, max-age=0');
-            header('Pragma: public');
-            header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
-            header('Content-Description: File Transfer');
-            header('Content-Transfer-Encoding: binary');
-            break;
-        case "view":
-            header('Content-Type: application/pdf');
-            header('Content-disposition: inline; filename="' . $name . '"');
-            header('Cache-Control: public, must-revalidate, max-age=0');
-            header('Pragma: public');
-            header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
-            break;
-        case "download":
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $name . '"');
-            header('Cache-Control: public, must-revalidate, max-age=0');
-            header('Pragma: public');
-            header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+/**
+ * Sends the correct headers for an inline view or download.
+ *
+ * @param string $action Action name.
+ * @param string $name Download filename.
+ * @return void
+ */
+function certificatebeautiful_show_header($action, $name): void {
+    header('Content-Type: application/pdf');
 
-            header('Content-Description: File Transfer');
-            header('Content-Transfer-Encoding: binary');
-            break;
-
-        default:
-            throw new \moodle_exception('invalidaction', 'moodle');
+    if ($action === "download") {
+        header('Content-Disposition: attachment; filename="' . $name . '"');
+        header('Content-Description: File Transfer');
+        header('Content-Transfer-Encoding: binary');
+    } else {
+        header('Content-Disposition: inline; filename="' . $name . '"');
     }
+
+    // Certificates contain personal data and must not be cached by shared proxies.
+    header('Cache-Control: private, no-store, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 }
 
 die();

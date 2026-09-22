@@ -26,6 +26,7 @@ namespace mod_certificatebeautiful\task;
 
 use core\task\scheduled_task;
 use mod_certificatebeautiful\automation;
+use Throwable;
 
 /**
  * Scheduled task responsible for automatic certificate generation.
@@ -55,15 +56,8 @@ class auto_issue_task extends scheduled_task {
 
         mtrace("mod_certificatebeautiful: automatic issue task started");
 
-        $records = $DB->get_records_select(
-            "certificatebeautiful",
-            "autogenerate = :autogenerate AND autotrigger <> :autotrigger",
-            [
-                "autogenerate" => 1,
-                "autotrigger" => automation::TRIGGER_NONE,
-            ],
-            "course ASC, id ASC"
-        );
+        $select = ["autotrigger" => automation::TRIGGER_NONE];
+        $records = $DB->get_records_select("certificatebeautiful", "autotrigger <> :autotrigger", $select, "course ASC, id ASC");
 
         foreach ($records as $certificatebeautiful) {
             $cm = get_coursemodule_from_instance(
@@ -84,8 +78,8 @@ class auto_issue_task extends scheduled_task {
 
             foreach ($candidateuserids as $userid) {
                 try {
-                    automation::process_user($cm->id, (int)$userid);
-                } catch (\Throwable $exception) {
+                    automation::process_user($cm->id, $userid);
+                } catch (Throwable $exception) {
                     mtrace(
                         "mod_certificatebeautiful: error issuing certificate for cmid {$cm->id}, " .
                         "userid {$userid}: {$exception->getMessage()}"
