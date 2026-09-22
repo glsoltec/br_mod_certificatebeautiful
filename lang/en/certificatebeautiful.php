@@ -26,6 +26,9 @@ defined('MOODLE_INTERNAL') || die;
 
 $string['add_new_model'] = 'Add new model';
 $string['add_new_page'] = 'Add a new page to the certificate';
+$string['archivecertificates'] = 'Archive issued certificates';
+$string['archivecertificates_help'] = 'When enabled, resetting the course archives the issued certificates instead of deleting them.';
+$string['autogenerate_task_name'] = 'Automatic Beautiful Certificate generation';
 $string['autotrigger'] = 'Automatic generation trigger';
 $string['autotrigger_activity'] = 'Activity required for completion trigger';
 $string['autotrigger_activitycompletion'] = 'Activity completion';

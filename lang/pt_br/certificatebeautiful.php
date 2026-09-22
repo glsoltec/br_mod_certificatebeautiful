@@ -26,6 +26,8 @@ defined('MOODLE_INTERNAL') || die;
 
 $string['add_new_model'] = 'Adicionar novo modelo';
 $string['add_new_page'] = 'Adicionar uma nova página ao certificado';
+$string['archivecertificates'] = 'Arquivar certificados emitidos';
+$string['archivecertificates_help'] = 'Quando habilitado, redefinir o curso arquiva os certificados emitidos em vez de excluí-los.';
 $string['autogenerate'] = 'Gerar certificados automaticamente';
 $string['autogenerate_help'] = 'Quando habilitado, a tarefa agendada criará automaticamente emissões de certificado e arquivos PDF.';
 $string['autogenerate_task_name'] = 'Geração automática de certificados Beautiful';
