@@ -3,8 +3,31 @@ namespace certificatebeautifuldatainfo_usersignature\datainfo;
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
+require_once($CFG->dirroot . '/local/usersignature/lib.php');
+
 use mod_certificatebeautiful\datainfo\help_base;
 
+/**
+ * Subplugin que expõe a assinatura cursiva do usuário como tags
+ * substituíveis no template HTML do mod_certificatebeautiful.
+ *
+ * Tags do DESTINATÁRIO do certificado (aluno):
+ *   {$USERSIGNATURE->signature_img}  — <img> base64 pronta para o HTML/PDF
+ *   {$USERSIGNATURE->signature_url}  — URL pública da imagem PNG (uso web)
+ *   {$USERSIGNATURE->signature_has}  — "1" se há assinatura, "0" se não
+ *   {$USERSIGNATURE->signature_font} — slug do estilo de fonte utilizado
+ *
+ * Tags do(s) PROFESSOR(es) do curso:
+ *   {$USERSIGNATURE->teacher_signature_img1}  — assinatura do 1º professor
+ *   {$USERSIGNATURE->teacher_signature_img2}  — assinatura do 2º professor
+ *   {$USERSIGNATURE->teacher_signature_all}   — assinaturas de todos (lado a lado, com nome)
+ *   {$USERSIGNATURE->teacher_signature_name1} — nome do 1º professor
+ *   {$USERSIGNATURE->teacher_signature_name2} — nome do 2º professor
+ *
+ * O professor é identificado pelos papéis de contato do curso ($CFG->coursecontact,
+ * normalmente "Professor"), a mesma regra usada pelo subplugin oficial "teachers".
+ */
 class usersignature extends help_base {
 
     const CLASS_NAME = 'usersignature';
@@ -26,31 +49,34 @@ class usersignature extends help_base {
     }
 
     public static function get_data($course, $user): array {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/certificatebeautiful/lib.php');
-
         $userid = (int) $user->id;
 
-        $datauri = certificatebeautiful_get_signature_datauri($userid);
+        // ─── Assinatura do destinatário (aluno) ───────────────────────────────
+        // Data URI base64: indispensável para o mPDF, que renderiza no servidor
+        // e não consegue baixar a URL protegida do pluginfile.
+        $datauri = local_usersignature_get_signature_datauri($userid);
         $has     = ($datauri !== '');
 
-        $url        = certificatebeautiful_get_signature_url($userid);
-        $urlstring = ($url !== null) ? $url->out() : '';
+        // URL pública mantida para usos web (não usada no PDF).
+        $url        = local_usersignature_get_signature_url($userid);
+        $url_string = ($url !== null) ? $url->out() : '';
 
-        $meta = certificatebeautiful_get_signature_meta($userid);
+        $meta = local_usersignature_get_signature_meta($userid);
 
-        $imgtag = '';
+        $img_tag = '';
         if ($has) {
-            $imgtag = self::build_img(
+            $img_tag = self::build_img(
                 $datauri,
-                get_string('mysignature', 'certificatebeautiful') . ' — ' . fullname($user)
+                get_string('mysignature', 'local_usersignature') . ' — ' . fullname($user)
             );
         }
 
+        // ─── Assinatura dos professores do curso ──────────────────────────────
         $teachers = self::get_course_teachers($course);
         $t1 = $teachers[0] ?? null;
         $t2 = $teachers[1] ?? null;
 
+        // Datas do curso formatadas para o padrão brasileiro
         $course_startdate_br = '';
         if (!empty($course->startdate)) {
             $course_startdate_br = userdate($course->startdate, '%d/%m/%Y');
@@ -61,8 +87,8 @@ class usersignature extends help_base {
         }
 
         return [
-            'signature_img'  => $imgtag,
-            'signature_url'  => $urlstring,
+            'signature_img'  => $img_tag,
+            'signature_url'  => $url_string,
             'signature_has'  => $has ? '1' : '0',
             'signature_font' => $meta['font'] ?? '',
 
@@ -77,11 +103,17 @@ class usersignature extends help_base {
         ];
     }
 
+    /**
+     * Hook pós-substituição: remove blocos marcados com data-sig-required="true"
+     * quando o usuário ainda não cadastrou assinatura.
+     *
+     * @param string $html
+     * @param object $course
+     * @param object $user
+     * @return string
+     */
     public static function process_html(string $html, $course, $user): string {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/certificatebeautiful/lib.php');
-
-        $datauri = certificatebeautiful_get_signature_datauri((int) $user->id);
+        $datauri = local_usersignature_get_signature_datauri((int) $user->id);
         if ($datauri === '') {
             $html = preg_replace(
                 '/<[^>]+data-sig-required=["\']true["\'][^>]*>.*?<\/\w+>/si',
@@ -92,6 +124,13 @@ class usersignature extends help_base {
         return $html;
     }
 
+    /**
+     * Monta a tag <img> com a assinatura em base64.
+     *
+     * @param string $datauri
+     * @param string $alt
+     * @return string
+     */
     private static function build_img(string $datauri, string $alt): string {
         return sprintf(
             '<img src="%s" alt="%s" style="max-height:60px;width:auto;display:block;margin:0 auto;">',
@@ -100,24 +139,31 @@ class usersignature extends help_base {
         );
     }
 
+    /**
+     * Assinatura de um professor (ou string vazia se ele não tiver assinatura).
+     *
+     * @param object $teacher
+     * @return string
+     */
     private static function teacher_img($teacher): string {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/certificatebeautiful/lib.php');
-
-        $datauri = certificatebeautiful_get_signature_datauri((int) $teacher->id);
+        $datauri = local_usersignature_get_signature_datauri((int) $teacher->id);
         if ($datauri === '') {
             return '';
         }
         return self::build_img($datauri, fullname($teacher));
     }
 
+    /**
+     * Bloco com as assinaturas de TODOS os professores que tenham assinatura,
+     * dispostas lado a lado com o nome abaixo.
+     *
+     * @param array $teachers
+     * @return string
+     */
     private static function teachers_block(array $teachers): string {
-        global $CFG;
-        require_once($CFG->dirroot . '/mod/certificatebeautiful/lib.php');
-
         $blocks = [];
         foreach ($teachers as $teacher) {
-            $datauri = certificatebeautiful_get_signature_datauri((int) $teacher->id);
+            $datauri = local_usersignature_get_signature_datauri((int) $teacher->id);
             if ($datauri === '') {
                 continue;
             }
@@ -131,6 +177,13 @@ class usersignature extends help_base {
         return implode('', $blocks);
     }
 
+    /**
+     * Professores do curso (papéis de contato), na mesma ordem usada pelo
+     * subplugin oficial "teachers". Deduplica usuários com mais de um papel.
+     *
+     * @param object $course
+     * @return array Lista de objetos de usuário.
+     */
     private static function get_course_teachers($course): array {
         global $CFG;
 
@@ -151,6 +204,7 @@ class usersignature extends help_base {
         $teachers = [];
         foreach ($roleids as $roleid) {
             foreach (get_role_users((int) $roleid, $context, true) as $u) {
+                // Chaveado por id para deduplicar; preserva a ordem de inserção.
                 if (!isset($teachers[$u->id])) {
                     $teachers[$u->id] = $u;
                 }
