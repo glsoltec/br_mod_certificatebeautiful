@@ -153,6 +153,10 @@ if (has_capability("mod/certificatebeautiful:viewreport", $context)) {
             "warning"
         );
     } else {
+        // Garante que o arquivo PDF exista antes de o app/web solicitar (evita
+        // "arquivo não encontrado" quando o app acessa o PDF diretamente).
+        automation::ensure_pdf_file($certificatebeautiful, $certificatebeautifulissue, $USER, $course, $cm);
+
         $viewerurl = "{$CFG->wwwroot}/mod/certificatebeautiful/_pdfjs-2.8.335-legacy/web/viewer.html";
         $urlbase = "{$CFG->wwwroot}/mod/certificatebeautiful/view-pdf.php?code={$certificatebeautifulissue->code}";
 
