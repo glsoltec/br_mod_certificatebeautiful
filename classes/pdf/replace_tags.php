@@ -196,13 +196,37 @@ class replace_tags {
         }
 
         if (function_exists('local_usersignature_get_signature_datauri')) {
-            $datauri = local_usersignature_get_signature_datauri((int) $this->user->id);
+            $userid = (int) $this->user->id;
+            $datauri = local_usersignature_get_signature_datauri($userid);
+
             if ($datauri !== '') {
                 $this->page->htmldata = preg_replace(
                     '/src="[^"]*signature\.png"/',
                     'src="' . $datauri . '"',
                     $this->page->htmldata
                 );
+            }
+
+            // Fallback das tags {$USERSIGNATURE->...} usadas nos modelos, caso o
+            // subplugin certificatebeautifuldatainfo_usersignature nao esteja
+            // habilitado (nesse caso o help_base::replace nao teria rodado).
+            $meta = function_exists('local_usersignature_get_signature_meta')
+                ? local_usersignature_get_signature_meta($userid)
+                : ["font" => ""];
+
+            $alt = get_string("mysignature", "local_usersignature") . " - " . fullname($this->user);
+            $imgtag = $datauri !== ''
+                ? '<img src="' . $datauri . '" alt="' . htmlspecialchars($alt, ENT_QUOTES)
+                    . '" style="max-height:60px;width:auto;display:block;margin:0 auto;">'
+                : '';
+
+            $this->page->htmldata = str_ireplace('{$USERSIGNATURE->signature_img}', $imgtag, $this->page->htmldata);
+            $this->page->htmldata = str_ireplace('{$USERSIGNATURE->signature_has}',
+                $datauri !== '' ? "1" : "0", $this->page->htmldata);
+            $this->page->htmldata = str_ireplace('{$USERSIGNATURE->signature_font}',
+                (string)($meta["font"] ?? ""), $this->page->htmldata);
+
+            if ($datauri !== '') {
                 return;
             }
         }
