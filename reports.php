@@ -53,7 +53,7 @@ $certificatebeautifuls = $DB->get_records_sql($sql, ["course" => $courseid]);
 $reportnode = ["children" => []];
 foreach ($certificatebeautifuls as $certificatebeautiful) {
     $modulecontext = context_module::instance($certificatebeautiful->id);
-    if (!has_capability("mod/certificatebeautiful:viewreport", $modulecontext)) {
+    if (!\mod_certificatebeautiful\access_manager::can_report($modulecontext, (int)$USER->id)) {
         continue;
     }
 

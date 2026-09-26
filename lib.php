@@ -174,7 +174,7 @@ function certificatebeautiful_reset_course_form_definition($mform) {
  * @return void
  */
 function certificatebeautiful_extend_settings_navigation($settings, $certificatebeautifulnode) {
-    global $PAGE;
+    global $PAGE, $USER;
 
     $keys = $certificatebeautifulnode->get_children_key_list();
     $beforekey = null;
@@ -185,7 +185,8 @@ function certificatebeautiful_extend_settings_navigation($settings, $certificate
         $beforekey = $keys[$i + 1];
     }
 
-    if (has_capability("mod/certificatebeautiful:viewreport", $PAGE->cm->context)) {
+    if (!empty($PAGE->cm)
+            && \mod_certificatebeautiful\access_manager::can_report($PAGE->cm->context, (int)$USER->id)) {
         $node = navigation_node::create(
             get_string("report", "certificatebeautiful"),
             new moodle_url("/mod/certificatebeautiful/report.php", ["id" => $PAGE->cm->id]),
@@ -217,6 +218,8 @@ function certificatebeautiful_extend_settings_navigation($settings, $certificate
  * @return bool
  */
 function certificatebeautiful_can_view_course_reports(int $courseid): bool {
+    global $USER;
+
     $modinfo = get_fast_modinfo($courseid);
 
     foreach ($modinfo->get_cms() as $cm) {
@@ -224,7 +227,7 @@ function certificatebeautiful_can_view_course_reports(int $courseid): bool {
             continue;
         }
 
-        if (has_capability("mod/certificatebeautiful:viewreport", context_module::instance($cm->id))) {
+        if (\mod_certificatebeautiful\access_manager::can_report(context_module::instance($cm->id), (int)$USER->id)) {
             return true;
         }
     }

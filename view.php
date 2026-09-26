@@ -56,7 +56,7 @@ if ($token) {
     require_course_login($course, true, $cm);
 }
 // A report-only role may manage/view issued certificates without needing the student-facing view capability.
-if (!has_capability("mod/certificatebeautiful:viewreport", $context)) {
+if (!access_manager::can_report($context, (int)$USER->id)) {
     require_capability("mod/certificatebeautiful:view", $context);
 }
 
@@ -121,7 +121,7 @@ $completion->set_module_viewed($cm);
 
 echo $OUTPUT->header();
 
-if (has_capability("mod/certificatebeautiful:viewreport", $context)) {
+if (access_manager::can_report($context, (int)$USER->id)) {
     $title = get_string("report_filename", "certificatebeautiful");
     echo $OUTPUT->heading($title, 2, "main", "certificatebeautifulheading");
 

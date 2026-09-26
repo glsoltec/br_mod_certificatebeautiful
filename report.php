@@ -22,6 +22,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use mod_certificatebeautiful\access_manager;
 use mod_certificatebeautiful\report\certificatebeautiful_view;
 
 require_once('../../config.php');
@@ -37,7 +38,10 @@ $certificatebeautiful = $DB->get_record("certificatebeautiful", ["id" => $cm->in
 $context = context_module::instance($cm->id);
 
 require_course_login($course, true, $cm);
-require_capability('mod/certificatebeautiful:viewreport', $context);
+
+if (!access_manager::can_report($context, (int)$USER->id)) {
+    require_capability('mod/certificatebeautiful:viewreport', $context);
+}
 
 $table = new certificatebeautiful_view(
     "certificatebeautiful_report", $cm->id, $certificatebeautiful);

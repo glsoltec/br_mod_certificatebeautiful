@@ -57,9 +57,9 @@ $reportaccess = [];
 $showreport = false;
 foreach ($certificatebeautifuls as $certificatebeautiful) {
     $modulecontext = context_module::instance($certificatebeautiful->coursemodule);
-    $reportaccess[$certificatebeautiful->coursemodule] = has_capability(
-        "mod/certificatebeautiful:viewreport",
-        $modulecontext
+    $reportaccess[$certificatebeautiful->coursemodule] = \mod_certificatebeautiful\access_manager::can_report(
+        $modulecontext,
+        (int)$USER->id
     );
     $showreport = $showreport || $reportaccess[$certificatebeautiful->coursemodule];
 }

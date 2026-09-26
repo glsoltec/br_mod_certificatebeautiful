@@ -44,6 +44,13 @@ $capabilities = [
             "manager" => CAP_ALLOW,
         ],
     ],
+    "mod/certificatebeautiful:viewgroupcertificates" => [
+        "captype" => "read",
+        "contextlevel" => CONTEXT_MODULE,
+        "archetypes" => [
+            "teacher" => CAP_ALLOW,
+        ],
+    ],
     "mod/certificatebeautiful:managemodels" => [
         "captype" => "write",
         "contextlevel" => CONTEXT_SYSTEM,

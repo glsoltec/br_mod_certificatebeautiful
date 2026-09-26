@@ -27,6 +27,7 @@ namespace mod_certificatebeautiful\report;
 use context_module;
 use Exception;
 use html_writer;
+use mod_certificatebeautiful\access_manager;
 use mod_certificatebeautiful\vo\certificatebeautiful;
 use moodle_url;
 use table_sql;
@@ -52,6 +53,9 @@ class certificatebeautiful_view extends table_sql {
     /** @var bool Whether the current user may create/delete issued certificates. */
     protected $canmanageissues = false;
 
+    /** @var bool Whether the report must be limited to users in the same groups. */
+    protected $grouplimited = false;
+
     /**
      * Constructor.
      *
@@ -65,10 +69,11 @@ class certificatebeautiful_view extends table_sql {
         $this->cmid = $cmid;
         $this->certificatebeautiful = $certificatebeautiful;
         $this->coursegradeitem = \grade_item::fetch_course_item($certificatebeautiful->course);
-        $this->canmanageissues = has_capability(
-            "mod/certificatebeautiful:viewreport",
-            context_module::instance($this->cmid)
-        );
+
+        global $USER;
+        $context = context_module::instance($this->cmid);
+        $this->canmanageissues = has_capability("mod/certificatebeautiful:viewreport", $context);
+        $this->grouplimited = access_manager::is_group_limited($context, (int)$USER->id);
 
         $this->is_downloadable(true);
         $this->show_download_buttons_at([TABLE_P_BOTTOM]);
@@ -228,6 +233,25 @@ class certificatebeautiful_view extends table_sql {
         $sqlwhere = $this->get_sql_where();
         $where = $sqlwhere[0] ? "AND {$sqlwhere[0]}" : "";
         $params = array_merge($params, $sqlwhere[1]);
+
+        // Users with only group access see certificates of users that share a group.
+        if ($this->grouplimited) {
+            global $USER;
+            $context = context_module::instance($this->cmid);
+            $groupids = array_keys(groups_get_all_groups(
+                $this->certificatebeautiful->course,
+                (int)$USER->id,
+                0,
+                "g.id"
+            ));
+            if ($groupids) {
+                list($groupsql, $groupparams) = $DB->get_in_or_equal($groupids, SQL_PARAMS_NAMED, "grp");
+                $where .= " AND u.id IN (SELECT gm.userid FROM {groups_members} gm WHERE gm.groupid {$groupsql})";
+                $params = array_merge($params, $groupparams);
+            } else {
+                $where .= " AND 1 = 0";
+            }
+        }
 
         $order = $this->get_sort_for_table($this->uniqueid);
         if (!$order) {
