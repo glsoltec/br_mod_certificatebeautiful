@@ -187,6 +187,14 @@ class replace_tags {
     public function repace_signature() {
         global $CFG;
 
+        // O mPDF gera o PDF no servidor e a assinatura é embutida como data URI.
+        // Garante que a lib do local_usersignature esteja carregada, pois as
+        // funções de plugin (lib.php) não são autoload no Moodle.
+        $usersignaturelib = "{$CFG->dirroot}/local/usersignature/lib.php";
+        if (is_readable($usersignaturelib)) {
+            require_once($usersignaturelib);
+        }
+
         if (function_exists('local_usersignature_get_signature_datauri')) {
             $datauri = local_usersignature_get_signature_datauri((int) $this->user->id);
             if ($datauri !== '') {
