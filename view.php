@@ -156,18 +156,18 @@ if (has_capability("mod/certificatebeautiful:viewreport", $context)) {
         $viewerurl = "{$CFG->wwwroot}/mod/certificatebeautiful/_pdfjs-2.8.335-legacy/web/viewer.html";
         $urlbase = "{$CFG->wwwroot}/mod/certificatebeautiful/view-pdf.php?code={$certificatebeautifulissue->code}";
 
+        // No Moodle Mobile o acesso é feito por token (sem sessão/cookie), então o
+        // token precisa acompanhar TODAS as URLs, inclusive os botões view/download.
+        if ($token) {
+            $urlbase .= "&token=" . urlencode($token);
+        }
+
         $data = [
             "issueid" => $certificatebeautifulissue->id,
             "pdf-viewer-url" => "{$viewerurl}?file=" . urlencode("{$urlbase}&action=view"),
             "pdf-url_base" => $urlbase,
             "pdf-direct-url" => "{$urlbase}&action=view",
         ];
-
-        if ($token) {
-            $mobilepdf = "{$urlbase}&action=view&token=" . urlencode($token);
-            $data["pdf-direct-url"] = $mobilepdf;
-            $data["pdf-viewer-url"] = "{$viewerurl}?file=" . urlencode($mobilepdf);
-        }
 
         if (class_exists('\\local_certificatesign\\manager')) {
             \local_certificatesign\manager::audit_access(
