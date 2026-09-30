@@ -71,14 +71,20 @@ class certificateissue extends help_base {
     public static function get_data($certificatebeautiful, $issue) {
         global $CFG;
 
-        $issue->description = str_replace("\n", "<br>", trim($certificatebeautiful->description));
-        $issue->url = "{$CFG->wwwroot}/mod/certificatebeautiful/v/?code={$issue->code}";
-        $issue->page = "{$CFG->wwwroot}/mod/certificatebeautiful/v/";
-        $issue->codelink = "<a href=\"{$issue->url}\">{$issue->code}</a>";
+        // Work on a copy of the issue record. The caller keeps using the original
+        // object (e.g. to update certificatebeautiful_issue after generating the
+        // PDF); mutating timecreated to a formatted date here would be written
+        // back to the database and break the update with a bigint error.
+        $issuedata = clone $issue;
 
-        $issue->timecreated = userdate($issue->timecreated);
+        $issuedata->description = str_replace("\n", "<br>", trim($certificatebeautiful->description));
+        $issuedata->url = "{$CFG->wwwroot}/mod/certificatebeautiful/v/?code={$issuedata->code}";
+        $issuedata->page = "{$CFG->wwwroot}/mod/certificatebeautiful/v/";
+        $issuedata->codelink = "<a href=\"{$issuedata->url}\">{$issuedata->code}</a>";
 
-        return self::base_get_data(self::table_structure(), $issue);
+        $issuedata->timecreated = userdate($issuedata->timecreated);
+
+        return self::base_get_data(self::table_structure(), $issuedata);
     }
 
     /**
