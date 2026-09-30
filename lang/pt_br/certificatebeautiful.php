@@ -66,6 +66,7 @@ $string['certificatebeautiful:managemodels'] = 'Gerenciar modelos de certificado
 $string['certificatebeautiful:view'] = 'Permitir que o usuário visualize o certificado Beautiful';
 $string['certificatebeautiful:viewreport'] = 'Visualizar relatórios de certificados Beautiful';
 $string['certificatebeautiful:viewgroupcertificates'] = 'Visualizar certificados de usuários do mesmo grupo';
+$string['certificatebeautiful:manageissues'] = 'Emitir e excluir certificados Beautiful';
 $string['certpresented'] = 'Este certificado é orgulhosamente apresentado a';
 $string['certsignature'] = 'Diretor';
 $string['certtitle'] = 'Certificado';

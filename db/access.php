@@ -51,6 +51,14 @@ $capabilities = [
             "teacher" => CAP_ALLOW,
         ],
     ],
+    "mod/certificatebeautiful:manageissues" => [
+        "captype" => "write",
+        "contextlevel" => CONTEXT_MODULE,
+        "archetypes" => [
+            "editingteacher" => CAP_ALLOW,
+            "manager" => CAP_ALLOW,
+        ],
+    ],
     "mod/certificatebeautiful:managemodels" => [
         "captype" => "write",
         "contextlevel" => CONTEXT_SYSTEM,

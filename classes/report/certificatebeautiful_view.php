@@ -72,7 +72,7 @@ class certificatebeautiful_view extends table_sql {
 
         global $USER;
         $context = context_module::instance($this->cmid);
-        $this->canmanageissues = has_capability("mod/certificatebeautiful:viewreport", $context);
+        $this->canmanageissues = access_manager::can_manage_issues($context, (int)$USER->id);
         $this->grouplimited = access_manager::is_group_limited($context, (int)$USER->id);
 
         $this->is_downloadable(true);
@@ -197,6 +197,11 @@ class certificatebeautiful_view extends table_sql {
                 ]);
             }
         } else {
+            // A view-only role must not be able to issue certificates.
+            if (!$this->canmanageissues) {
+                return "";
+            }
+
             $data = [
                 "create" => true,
                 "url-create" => new moodle_url("/mod/certificatebeautiful/view-pdf.php", [

@@ -93,11 +93,25 @@ class access_manager {
     /**
      * Requires permission to create or delete issues for other users.
      *
+     * This is separate from report access so a view-only manager role can see
+     * certificates without being able to issue or remove them.
+     *
      * @param context_module $context Module context.
      * @return void
      */
     public static function require_manage_issues(context_module $context): void {
-        require_capability("mod/certificatebeautiful:viewreport", $context);
+        require_capability("mod/certificatebeautiful:manageissues", $context);
+    }
+
+    /**
+     * Checks whether the user may create or delete issues for other users.
+     *
+     * @param context_module $context Module context.
+     * @param int $userid User id.
+     * @return bool
+     */
+    public static function can_manage_issues(context_module $context, int $userid): bool {
+        return has_capability("mod/certificatebeautiful:manageissues", $context, $userid);
     }
 
     /**
