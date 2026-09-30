@@ -150,6 +150,18 @@ if ($certificatebeautiful->timemodified != $certificatebeautifulissue->version) 
     }
 }
 
+// Regenerate when the cached file predates the recorded completion date so
+// dynamic tags like {$ENROLMENTS->timecompleteddate} are not stale.
+$completiontime = (int) $DB->get_field(
+    "course_completions",
+    "timecompleted",
+    ["course" => $course->id, "userid" => $user->id]
+);
+if ($storedfile && $completiontime && $storedfile->get_timecreated() < $completiontime) {
+    $storedfile->delete();
+    $storedfile = null;
+}
+
 if ($storedfile) {
     if ($storedfile->get_timecreated() > $certificatebeautifulmodel->timemodified) {
         certificatebeautiful_require_signed_issue($certificatebeautifulissue);

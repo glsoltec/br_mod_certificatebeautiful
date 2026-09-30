@@ -196,6 +196,21 @@ class automation {
             $stale = true;
         }
 
+        // The completion date can change after the certificate was first generated
+        // (auto-issue, reaggregation, or manual issue before completion). Regenerate
+        // whenever the cached file predates the recorded completion time so dynamic
+        // tags such as {$ENROLMENTS->timecompleteddate} stay correct.
+        $completiontime = (int) $DB->get_field(
+            "course_completions",
+            "timecompleted",
+            ["course" => $course->id, "userid" => $user->id]
+        );
+        if ($storedfile && $completiontime && $storedfile->get_timecreated() < $completiontime) {
+            $storedfile->delete();
+            $storedfile = null;
+            $stale = true;
+        }
+
         if ($storedfile && !$stale) {
             return;
         }
